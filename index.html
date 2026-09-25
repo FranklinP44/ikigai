@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ikigai · A reason for being</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="kanji">生き甲斐</div>
+    <h1>Ikigai</h1>
+    <p class="sub">A reason for being. Hover or tap any region to explore it.</p>
+  </header>
+
+  <section class="diagram">
+    <svg id="ikigai" viewBox="40 40 720 720" role="img" aria-label="Four-circle Ikigai diagram">
+      <defs id="defs">
+        <radialGradient id="gold" gradientUnits="userSpaceOnUse" cx="400" cy="400" r="100">
+          <stop offset="0" stop-color="#FFF8E3"/>
+          <stop offset="0.6" stop-color="#F8D78F"/>
+          <stop offset="1" stop-color="#EDB65A"/>
+        </radialGradient>
+      </defs>
+
+      <g class="circles">
+        <circle class="circle" cx="400" cy="270" r="200" fill="var(--love)"/>
+        <circle class="circle" cx="270" cy="400" r="200" fill="var(--good)"/>
+        <circle class="circle" cx="530" cy="400" r="200" fill="var(--needs)"/>
+        <circle class="circle" cx="400" cy="530" r="200" fill="var(--paid)"/>
+      </g>
+
+      <g class="center-fill" id="centerFill"></g>
+      <g class="overlay-layer" id="zones"></g>
+
+      <g class="outlines">
+        <circle class="outline" cx="400" cy="270" r="200"/>
+        <circle class="outline" cx="270" cy="400" r="200"/>
+        <circle class="outline" cx="530" cy="400" r="200"/>
+        <circle class="outline" cx="400" cy="530" r="200"/>
+      </g>
+
+      <g class="labels">
+        <text class="label-circle" x="400" y="150">WHAT YOU LOVE</text>
+
+        <text class="label-circle" x="160" y="394">WHAT YOU’RE</text>
+        <text class="label-circle" x="160" y="414">GOOD AT</text>
+
+        <text class="label-circle" x="641" y="394">WHAT THE</text>
+        <text class="label-circle" x="641" y="414">WORLD NEEDS</text>
+
+        <text class="label-circle" x="400" y="648">WHAT YOU CAN</text>
+        <text class="label-circle" x="400" y="668">BE PAID FOR</text>
+
+        <text class="label-pair" x="282" y="287">Passion</text>
+        <text class="label-pair" x="518" y="287">Mission</text>
+        <text class="label-pair" x="282" y="527">Profession</text>
+        <text class="label-pair" x="518" y="527">Vocation</text>
+
+        <circle class="dot" cx="400" cy="291" r="3.5"/>
+        <circle class="dot" cx="509" cy="400" r="3.5"/>
+        <circle class="dot" cx="400" cy="509" r="3.5"/>
+        <circle class="dot" cx="291" cy="400" r="3.5"/>
+
+        <text class="label-center" x="402" y="404">IKIGAI</text>
+        <text class="label-center-jp" x="402" y="426">生き甲斐</text>
+      </g>
+    </svg>
+  </section>
+
+  <aside class="panel">
+    <div class="card" aria-live="polite">
+      <div class="content" id="content">
+        <div class="eyebrow" id="eyebrow"></div>
+        <h2 id="title"></h2>
+        <p id="desc"></p>
+        <div class="chips" id="chips"></div>
+        <div class="examples">
+          <div class="examples-label">For some:</div>
+          <ul id="examples"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="explore-label">Explore</div>
+      <div class="pills" id="pills">
+        <button class="pill" data-zone="LGNP">Ikigai</button>
+        <button class="pill" data-zone="LG">Passion</button>
+        <button class="pill" data-zone="LN">Mission</button>
+        <button class="pill" data-zone="GP">Profession</button>
+        <button class="pill" data-zone="NP">Vocation</button>
+      </div>
+    </div>
+
+    <p class="note">
+      The white dots mark the three-circle overlaps. The four-circle model is a modern Western adaptation:
+      Marc Winn relabeled Andrés Zuzunaga’s purpose Venn diagram as “ikigai” in 2014. In Japan, ikigai more
+      broadly means whatever makes life feel worth living.
+    </p>
+  </aside>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
