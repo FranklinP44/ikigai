@@ -1,2 +1,5 @@
+node_modules
+dist
+
 # Local Confluence dry-run output
 build/
