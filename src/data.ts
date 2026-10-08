@@ -1,16 +1,42 @@
-const NS = "http://www.w3.org/2000/svg";
-const R = 200;
-const ORDER = "LGNP";
-const C = { L: [400, 270], G: [270, 400], N: [530, 400], P: [400, 530] };
-const CIRCLE = {
+export type CircleKey = "L" | "G" | "N" | "P";
+
+// Keys list the circles a region sits inside, in L-G-N-P order.
+export type ZoneKey =
+  | "L" | "G" | "N" | "P"
+  | "LG" | "LN" | "GP" | "NP"
+  | "LGN" | "LNP" | "GNP" | "LGP"
+  | "LGNP";
+
+export interface Circle {
+  name: string;
+  color: string;
+}
+
+export interface Zone {
+  eyebrow: string;
+  title: string;
+  desc: string;
+}
+
+export const ORDER: readonly CircleKey[] = ["L", "G", "N", "P"];
+
+// Overlay layers are created in this order.
+export const ZONE_KEYS: readonly ZoneKey[] = [
+  "L", "G", "N", "P", "LG", "LN", "GP", "NP", "LGN", "LNP", "GNP", "LGP", "LGNP",
+];
+
+export function isZoneKey(key: string): key is ZoneKey {
+  return (ZONE_KEYS as readonly string[]).includes(key);
+}
+
+export const CIRCLE: Record<CircleKey, Circle> = {
   L: { name: "What you love", color: "var(--love)" },
   G: { name: "What you’re good at", color: "var(--good)" },
   N: { name: "What the world needs", color: "var(--needs)" },
   P: { name: "What you can be paid for", color: "var(--paid)" },
 };
 
-// Keys list the circles a region sits inside, in L-G-N-P order.
-const ZONES = {
+export const ZONES: Record<ZoneKey, Zone> = {
   L: { eyebrow: "One circle", title: "What you love",
        desc: "The activities, topics, and people that energize you. Time disappears when you’re doing them." },
   G: { eyebrow: "One circle", title: "What you’re good at",
@@ -39,7 +65,7 @@ const ZONES = {
           desc: "Where all four meet: something you love, are good at, the world needs, and can be paid for. In this model, that intersection is your reason for being." },
 };
 
-const EXAMPLES = {
+export const EXAMPLES: Record<ZoneKey, readonly string[]> = {
   L: ["Cooking elaborate weekend dinners", "Hiking and being outdoors", "Getting lost in a good novel"],
   G: ["Explaining complex ideas simply", "Bringing order to chaotic projects", "Spotting patterns in messy data"],
   N: ["Better mental health support", "Affordable housing", "Practical climate solutions"],
@@ -54,97 +80,3 @@ const EXAMPLES = {
   LGP: ["A designer crafting ads for products they don’t believe in", "A gifted trader who loves the game but questions its impact", "A talented developer shipping yet another ad-tech feature"],
   LGNP: ["A doctor who loves medicine, excels at it, and is fairly paid", "A teacher who is gifted, fulfilled, and valued", "An engineer building clean-energy tech they care about"],
 };
-
-const svg = document.getElementById("ikigai");
-const defs = document.getElementById("defs");
-const zonesLayer = document.getElementById("zones");
-
-function el(tag, attrs, parent) {
-  const n = document.createElementNS(NS, tag);
-  for (const k in attrs) n.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(n);
-  return n;
-}
-
-// Masks instead of clip-paths so region edges stay anti-aliased.
-const FULL = { maskUnits: "userSpaceOnUse", x: 0, y: 0, width: 800, height: 800 };
-for (const k of ORDER) {
-  const inc = el("mask", { id: "in-" + k, ...FULL }, defs);
-  el("rect", { x: 0, y: 0, width: 800, height: 800, fill: "#000" }, inc);
-  el("circle", { cx: C[k][0], cy: C[k][1], r: R, fill: "#fff" }, inc);
-}
-
-let uid = 0;
-function region(key, fill, parent, cls) {
-  const out = el("mask", { id: "out-" + uid++, ...FULL }, defs);
-  el("rect", { x: 0, y: 0, width: 800, height: 800, fill: "#fff" }, out);
-  [...ORDER].filter(k => !key.includes(k))
-    .forEach(k => el("circle", { cx: C[k][0], cy: C[k][1], r: R, fill: "#000" }, out));
-  const g = el("g", { mask: `url(#${out.id})`, class: cls || "", "data-zone": key }, parent);
-  let inner = g;
-  for (const k of key) inner = el("g", { mask: `url(#in-${k})` }, inner);
-  el("rect", { x: 0, y: 0, width: 800, height: 800, fill }, inner);
-  return g;
-}
-
-region("LGNP", "url(#gold)", document.getElementById("centerFill"));
-const zoneEls = {};
-for (const key in ZONES) {
-  zoneEls[key] = region(key, key === "LGNP" ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.5)", zonesLayer, "zone");
-}
-
-function zoneAt(x, y) {
-  let key = "";
-  for (const k of ORDER) if (Math.hypot(x - C[k][0], y - C[k][1]) <= R) key += k;
-  return ZONES[key] ? key : null;
-}
-
-function toSvg(e) {
-  const pt = svg.createSVGPoint();
-  pt.x = e.clientX; pt.y = e.clientY;
-  return pt.matrixTransform(svg.getScreenCTM().inverse());
-}
-
-const content = document.getElementById("content");
-const pills = document.querySelectorAll(".pill");
-let current = null;
-let pinned = "LGNP";
-let swapTimer;
-
-function render(key) {
-  const z = ZONES[key];
-  document.getElementById("eyebrow").textContent = z.eyebrow;
-  document.getElementById("title").textContent = z.title;
-  document.getElementById("desc").textContent = z.desc;
-  document.getElementById("chips").innerHTML = [...ORDER].map(k =>
-    `<span class="chip ${key.includes(k) ? "" : "off"}"><i style="background:${CIRCLE[k].color}"></i>${CIRCLE[k].name}</span>`
-  ).join("");
-  document.getElementById("examples").innerHTML = EXAMPLES[key].map(x => `<li>${x}</li>`).join("");
-}
-
-function setZone(key, instant) {
-  if (key === current) return;
-  current = key;
-  for (const k in zoneEls) zoneEls[k].classList.toggle("active", k === key);
-  pills.forEach(p => p.classList.toggle("active", p.dataset.zone === key));
-  clearTimeout(swapTimer);
-  if (instant) { render(key); return; }
-  content.classList.add("swap");
-  swapTimer = setTimeout(() => { render(key); content.classList.remove("swap"); }, 140);
-}
-
-svg.addEventListener("pointermove", e => {
-  const p = toSvg(e);
-  const key = zoneAt(p.x, p.y);
-  svg.classList.toggle("hovering", !!key);
-  setZone(key || pinned);
-});
-svg.addEventListener("pointerleave", () => { svg.classList.remove("hovering"); setZone(pinned); });
-svg.addEventListener("click", e => {
-  const p = toSvg(e);
-  const key = zoneAt(p.x, p.y);
-  if (key) { pinned = key; setZone(key); }
-});
-pills.forEach(p => p.addEventListener("click", () => { pinned = p.dataset.zone; setZone(pinned); }));
-
-setZone("LGNP", true);
