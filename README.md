@@ -19,6 +19,10 @@ npm run preview   # serve the built dist/ at http://localhost:4173
 
 The built page must be served over HTTP (for example with `npm run preview` or any static file host); opening `dist/index.html` directly from disk is not supported.
 
+## Deployment
+
+Pushes to `main` are built and deployed to GitHub Pages by `.github/workflows/deploy-pages.yml`. Pull requests run the same build as a check without deploying.
+
 ## Layout
 
 - `index.html`: page markup and the SVG diagram
@@ -26,3 +30,5 @@ The built page must be served over HTTP (for example with `npm run preview` or a
 - `src/data.ts`: circle, region and example content
 - `src/geometry.ts`: circle positions and hit-testing
 - `src/styles.css`: styles
+- `vite.config.ts`: Vite settings (relative asset paths for GitHub Pages)
+- `droid-wiki/`: generated codebase wiki, published to Confluence by `.github/workflows/publish-wiki-to-confluence.yml`
