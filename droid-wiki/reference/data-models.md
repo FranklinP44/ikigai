@@ -1,20 +1,53 @@
 # Data models
 
-All content is stored in three object literals in `script.js`. They are keyed by [zone keys](../primitives/zone-keys.md) or circle letters.
+All content is stored in typed constants in `src/data.ts`. They are keyed by [zone keys](../primitives/zone-keys.md) or circle letters, and TypeScript checks that every key is present. Circle geometry lives in `src/geometry.ts`.
 
 ```mermaid
 graph LR
-    CIRCLE["CIRCLE<br/>4 entries, keyed by letter"] -->|chip name + color| Render["render()"]
-    ZONES["ZONES<br/>13 entries, keyed by zone key"] -->|eyebrow, title, desc| Render
-    EXAMPLES["EXAMPLES<br/>13 entries, keyed by zone key"] -->|3 strings| Render
-    ZONES -->|keys define valid zones| ZoneAt["zoneAt()"]
-    ZONES -->|keys define overlays| Region["region()"]
+    CIRCLE["CIRCLE<br/>4 entries, keyed by CircleKey"] -->|chip name + color| Render["render()"]
+    ZONES["ZONES<br/>13 entries, keyed by ZoneKey"] -->|eyebrow, title, desc| Render
+    EXAMPLES["EXAMPLES<br/>13 entries, keyed by ZoneKey"] -->|3 strings| Render
+    ZONE_KEYS["ZONE_KEYS"] -->|overlay order| Region["region()"]
+    ZONE_KEYS -->|valid keys via isZoneKey| ZoneAt["zoneAt()"]
+    CENTERS["CENTERS, R"] --> ZoneAt
+    CENTERS --> Region
 ```
+
+`render()` and `region()` are in `src/main.ts`; `zoneAt()` is in `src/geometry.ts`.
+
+## Types
+
+All four are exported from `src/data.ts`.
+
+```ts
+type CircleKey = "L" | "G" | "N" | "P";
+
+// Keys list the circles a region sits inside, in L-G-N-P order.
+type ZoneKey =
+  | "L" | "G" | "N" | "P"
+  | "LG" | "LN" | "GP" | "NP"
+  | "LGN" | "LNP" | "GNP" | "LGP"
+  | "LGNP";
+
+interface Circle { name: string; color: string; }
+interface Zone   { eyebrow: string; title: string; desc: string; }
+```
+
+`ZoneKey` has 13 members. `LP` and `GN` are missing on purpose; see [Zone keys](../primitives/zone-keys.md).
+
+## `ORDER` and `ZONE_KEYS`
+
+| Constant | Type | Value | Used for |
+| --- | --- | --- | --- |
+| `ORDER` | `readonly CircleKey[]` | `["L", "G", "N", "P"]` | Building zone keys in `zoneAt()`, creating the four `in-` masks, listing chips in `render()` |
+| `ZONE_KEYS` | `readonly ZoneKey[]` | `L, G, N, P, LG, LN, GP, NP, LGN, LNP, GNP, LGP, LGNP` | Overlay creation order in `src/main.ts`, toggling `.active` in `setZone()`, and the `isZoneKey()` check |
+
+`isZoneKey(key: string): key is ZoneKey` returns true when `key` is in `ZONE_KEYS`. `zoneAt()` uses it to reject point combinations that are not zones, and the Explore pill handler uses it to validate `data-zone` attributes from `index.html`.
 
 ## `CIRCLE`
 
-```js
-CIRCLE[letter] = { name: string, color: string }
+```ts
+const CIRCLE: Record<CircleKey, Circle>
 ```
 
 | Key | `name` | `color` |
@@ -26,8 +59,8 @@ CIRCLE[letter] = { name: string, color: string }
 
 ## `ZONES`
 
-```js
-ZONES[zoneKey] = { eyebrow: string, title: string, desc: string }
+```ts
+const ZONES: Record<ZoneKey, Zone>
 ```
 
 | Key | `eyebrow` | `title` |
@@ -46,30 +79,44 @@ ZONES[zoneKey] = { eyebrow: string, title: string, desc: string }
 | `LGP` | Passion + Profession | Satisfaction, but uselessness |
 | `LGNP` | All four circles | Ikigai |
 
-`desc` is one or two sentences explaining the zone. The key set of `ZONES` is also the source of truth for which regions exist: `zoneAt()` ignores keys not in `ZONES`, and the overlay loop creates one overlay per key.
+`desc` is one or two sentences explaining the zone. Because the type is `Record<ZoneKey, Zone>`, leaving out a zone or adding an unknown key is a type error.
 
 ## `EXAMPLES`
 
-```js
-EXAMPLES[zoneKey] = [string, string, string]
+```ts
+const EXAMPLES: Record<ZoneKey, readonly string[]>
 ```
 
-Each of the 13 zones has exactly three short examples. For instance:
+Each of the 13 zones has exactly three short examples. The type requires every zone to have an entry but does not enforce the count of three. For instance:
 
-```js
+```ts
 LG: ["A skilled amateur photographer who shoots just for fun",
      "A home baker whose bread friends rave about",
-     "A gifted guitarist who plays only for themselves"]
+     "A gifted guitarist who plays only for themselves"],
 ```
 
-Every key in `ZONES` must also exist in `EXAMPLES`. See [Pitfalls](../background/pitfalls.md).
+To add a zone, add it to the `ZoneKey` union, to `ZONE_KEYS`, and to both `ZONES` and `EXAMPLES`; `tsc` reports the records that are missing it. See [Pitfalls](../background/pitfalls.md).
+
+## Geometry
+
+Exported from `src/geometry.ts`:
+
+| Export | Type | Value |
+| --- | --- | --- |
+| `R` | `number` | `200` |
+| `CENTERS` | `Record<CircleKey, readonly [number, number]>` | `L: [400, 270]`, `G: [270, 400]`, `N: [530, 400]`, `P: [400, 530]` |
+| `zoneAt(x, y)` | `(number, number) => ZoneKey \| null` | Pure-math hit test: collects every circle whose center is within `R` of the point, in `ORDER`, and returns the key if `isZoneKey()` accepts it |
+
+The same centers and radius are hard-coded in the base circles and outlines in `index.html`.
 
 ## Runtime state
 
+Module-level variables in `src/main.ts`:
+
 | Variable | Type | Description |
 | --- | --- | --- |
-| `current` | zone key or `null` | Zone currently displayed |
-| `pinned` | zone key | Zone shown when the pointer is not over a region |
-| `swapTimer` | timeout id | Pending panel render |
-| `zoneEls` | `{ [zoneKey]: SVGGElement }` | Overlay groups created by `region()` |
-| `uid` | number | Counter for unique exclusion mask ids |
+| `current` | `ZoneKey \| null` | Zone currently displayed |
+| `pinned` | `ZoneKey` | Zone shown when the pointer is not over a region. Starts as `"LGNP"` |
+| `swapTimer` | `number \| undefined` | Pending panel render |
+| `zoneEls` | `Record<ZoneKey, SVGGElement>` | Overlay groups created by `region()` |
+| `uid` | `number` | Counter for unique exclusion mask ids |

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-10-06T12:46:53Z",
-  "commitHash": "07f52b98991deff98901d6f21835b4ad015d29fe",
+  "generatedAt": "2026-10-08T10:45:32Z",
+  "commitHash": "e878c1f519089c93fcd9d3883461c6e217c6a993",
   "branch": "main",
-  "pageCount": 29,
+  "pageCount": 30,
   "topLevelSections": [
     "overview",
     "by-the-numbers",
@@ -12,6 +12,7 @@
     "features",
     "systems",
     "primitives",
+    "deployment",
     "background",
     "cleanup-opportunities",
     "reference"
@@ -38,6 +39,7 @@
     "systems/visual-design.md",
     "primitives/index.md",
     "primitives/zone-keys.md",
+    "deployment.md",
     "background/index.md",
     "background/design-decisions.md",
     "background/pitfalls.md",

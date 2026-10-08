@@ -1,6 +1,6 @@
 # Features
 
-The app has two user-facing features. Both live in `script.js` and share the same state (`current` and `pinned`).
+The app has two user-facing features. Both live in `src/main.ts` and share the same state (`current` and `pinned`). Their content comes from `src/data.ts`, and hit testing comes from `src/geometry.ts`.
 
 | Feature | What the visitor does | Page |
 | --- | --- | --- |
@@ -9,8 +9,8 @@ The app has two user-facing features. Both live in `script.js` and share the sam
 
 ```mermaid
 graph LR
-    Pointer[Pointer over SVG] --> ZE[Zone exploration]
-    Pills[Explore buttons] --> ZE
+    Pointer[Pointer over SVG] -->|zoneAt| ZE[Zone exploration]
+    Pills[Explore buttons] -->|isZoneKey| ZE
     ZE -->|setZone key| DP[Detail panel]
     ZE -->|.active| Overlay[Zone overlay highlight]
 ```

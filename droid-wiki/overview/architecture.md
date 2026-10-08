@@ -1,31 +1,36 @@
 # Architecture
 
-Ikigai is three static files loaded by the browser. `index.html` holds the page layout and the base SVG, `styles.css` handles the look and animations, and `script.js` builds the overlap regions at load time and wires up the interaction.
+Ikigai is a small TypeScript app bundled by Vite into static files. `index.html` holds the page layout and the base SVG, `src/styles.css` handles the look and animations, and `src/main.ts` builds the overlap regions at load time and wires up the interaction. `src/main.ts` imports its content from `src/data.ts` and its geometry and hit testing from `src/geometry.ts`.
 
 ## Components
 
 ```mermaid
 graph TD
     HTML[index.html<br/>layout + base SVG]
-    HTML -->|loads| CSS[styles.css<br/>tokens, animation, layout]
-    HTML -->|loads| JS[script.js<br/>data, masks, events]
+    HTML -->|link| CSS[src/styles.css<br/>tokens, animation, layout]
+    HTML -->|script type=module| MAIN[src/main.ts<br/>masks, state, events]
     HTML -->|loads| Fonts[Google Fonts CDN]
-    JS -->|builds masks and zone overlays| SVG[svg#ikigai]
-    JS -->|writes zone content| Panel[Detail panel]
+    MAIN -->|imports| DATA[src/data.ts<br/>types + content]
+    MAIN -->|imports| GEO[src/geometry.ts<br/>R, CENTERS, zoneAt]
+    GEO -->|imports| DATA
+    MAIN -->|builds masks and zone overlays| SVG[svg#ikigai]
+    MAIN -->|writes zone content| Panel[Detail panel]
     CSS -->|styles state classes| SVG
     CSS -->|styles state classes| Panel
 ```
 
-There is no build step, bundler, server code, or package manager. The browser loads `index.html`, which pulls in `styles.css` from its `<head>` and runs `script.js` at the end of `<body>`, after the DOM it needs already exists.
+`index.html` references `/src/styles.css` and `/src/main.ts` directly. In development, the Vite dev server compiles the TypeScript on request. `npm run build` first type-checks with `tsc --noEmit`, then `vite build` bundles everything into `dist/` (an `index.html` plus hashed JS and CSS files under `dist/assets/`) with the tags rewritten to point at the bundles. `vite.config.ts` sets `base: './'` so the asset URLs are relative and work under the GitHub Pages subpath `/ikigai/`. There is no server code. See [Deployment](../deployment.md) for how `dist/` is published.
+
+The entry script is an ES module, so the browser defers it until the document is parsed. `src/main.ts` can look up DOM elements at the top level without waiting for `DOMContentLoaded`.
 
 ## Language breakdown
 
 ```mermaid
 xychart-beta horizontal
     title "Lines of code by file"
-    x-axis ["script.js (JS)", "styles.css (CSS)", "index.html (HTML)"]
+    x-axis ["src/main.ts (TS)", "src/data.ts (TS)", "src/geometry.ts (TS)", "src/styles.css (CSS)", "index.html (HTML)"]
     y-axis "Lines" 0 --> 160
-    bar [150, 144, 110]
+    bar [113, 82, 16, 144, 110]
 ```
 
 See [By the numbers](../by-the-numbers.md) for the full snapshot.
@@ -37,8 +42,8 @@ The diagram in `index.html` is a stack of SVG groups. Later groups paint on top 
 | Order | Group | Filled by | Purpose |
 | --- | --- | --- | --- |
 | 1 | `<g class="circles">` | `index.html` | Four colored circles, blended with `mix-blend-mode: multiply` so overlaps darken naturally |
-| 2 | `<g id="centerFill">` | `script.js` | Gold radial gradient painted only inside the four-way overlap |
-| 3 | `<g id="zones">` | `script.js` | One translucent white overlay per region, hidden until it becomes active |
+| 2 | `<g id="centerFill">` | `src/main.ts` | Gold radial gradient painted only inside the four-way overlap |
+| 3 | `<g id="zones">` | `src/main.ts` | One translucent white overlay per region, hidden until it becomes active |
 | 4 | `<g class="outlines">` | `index.html` | White circle outlines drawn over the fills |
 | 5 | `<g class="labels">` | `index.html` | Circle names, pair names, center label, and the four white dots; `pointer-events: none` |
 
@@ -51,16 +56,16 @@ There are no network requests after load. The interesting flow is how a pointer 
 ```mermaid
 sequenceDiagram
     participant U as Visitor
-    participant S as svg#ikigai
-    participant Z as zoneAt()
+    participant S as svg#ikigai (src/main.ts)
+    participant Z as zoneAt() (src/geometry.ts)
     participant SZ as setZone()
     participant R as render()
     participant P as Detail panel
 
     U->>S: pointermove (clientX, clientY)
-    S->>S: toSvg() converts to SVG coordinates
+    S->>S: zoneForEvent() calls toSvg() for SVG coordinates
     S->>Z: zoneAt(x, y)
-    Z-->>S: zone key such as "LG", or null
+    Z-->>S: ZoneKey such as "LG", or null
     S->>SZ: setZone(key or pinned)
     SZ->>SZ: toggle .active on zone overlay and pill
     SZ->>P: add .swap (fade out)
@@ -69,22 +74,30 @@ sequenceDiagram
     SZ->>P: remove .swap (fade in)
 ```
 
-Hit testing is pure math: `zoneAt()` in `script.js` checks the distance from the pointer to each circle center. It does not rely on DOM hit targets, so the overlapping masked groups never compete for events. See [Zone exploration](../features/zone-exploration.md) for the full interaction model.
+Hit testing is pure math: `zoneAt()` in `src/geometry.ts` checks the distance from the point to each circle center and returns a `ZoneKey`, or `null` when the point is outside every circle. It does not rely on DOM hit targets, so the overlapping masked groups never compete for events. See [Zone exploration](../features/zone-exploration.md) for the full interaction model.
 
 ## Data model at a glance
 
-All content lives in three object literals at the top of `script.js`:
+All content and its types live in `src/data.ts`:
 
-- `CIRCLE`: display name and color variable for each of the four circles.
-- `ZONES`: eyebrow, title, and description for each of the 13 regions.
-- `EXAMPLES`: three example strings for each region.
+- `CircleKey` (`"L" | "G" | "N" | "P"`) and `ZoneKey` (a union of the 13 region keys).
+- `ORDER`: the four circle keys in `L-G-N-P` order. `ZONE_KEYS`: all 13 zone keys in overlay creation order.
+- `CIRCLE: Record<CircleKey, Circle>`: display name and color variable for each circle.
+- `ZONES: Record<ZoneKey, Zone>`: eyebrow, title, and description for each region.
+- `EXAMPLES: Record<ZoneKey, readonly string[]>`: three example strings for each region.
+- `isZoneKey()`: a type guard that narrows a plain string to `ZoneKey`.
 
-Every one of these is keyed by a [zone key](../primitives/zone-keys.md). Field-level details are in [Data models](../reference/data-models.md).
+Because the records are typed by `ZoneKey`, the compiler rejects a missing or misspelled region. Field-level details are in [Data models](../reference/data-models.md), and the key scheme is in [Zone keys](../primitives/zone-keys.md).
 
 ## Key source files
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Page layout, base SVG (circles, outlines, labels, gold gradient), detail panel shell, and Explore buttons |
-| `script.js` | Zone data, SVG mask generation, hit testing, panel rendering, and event handlers |
-| `styles.css` | Design tokens, entrance animations, zone overlay transitions, panel styling, and responsive breakpoints |
+| `index.html` | Page layout, base SVG (circles, outlines, labels, gold gradient), detail panel shell, Explore buttons, and the `<script type="module">` entry point |
+| `src/main.ts` | Typed DOM lookups, SVG mask generation, panel rendering, state, and event handlers |
+| `src/data.ts` | Circle and zone types, zone content, examples, and the `isZoneKey()` guard |
+| `src/geometry.ts` | Circle radius `R`, circle `CENTERS`, and the `zoneAt()` hit test |
+| `src/styles.css` | Design tokens, entrance animations, zone overlay transitions, panel styling, and responsive breakpoints |
+| `vite.config.ts` | Vite settings; `base: './'` for relative asset URLs |
+| `tsconfig.json` | Strict TypeScript compiler options for type checking only (`noEmit`) |
+| `.github/workflows/deploy-pages.yml` | Builds on every push and PR, deploys `dist/` to GitHub Pages from `main` |
