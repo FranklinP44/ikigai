@@ -1,10 +1,29 @@
 # Testing
 
-There are no automated tests and no test framework in the repository. Testing is manual, in a browser.
+There are no automated tests and no test framework in the repository. The only automated check is the TypeScript type check, which runs as part of `npm run build`. Behavior is tested manually in a browser.
+
+## Automated check: type checking
+
+`npm run build` runs `tsc --noEmit && vite build`. The type check uses the strict settings in `tsconfig.json` (`strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`) over everything in `src/`.
+
+The `build` job in `.github/workflows/deploy-pages.yml` runs `npm ci` and `npm run build` on every pull request, so a type error blocks a green PR. See [Deployment](../deployment.md).
+
+What the type check catches:
+
+- A zone key missing from `ZONES` or `EXAMPLES`, because both are typed `Record<ZoneKey, ...>` in `src/data.ts`.
+- A misspelled zone key such as `"LGX"` anywhere a `ZoneKey` is expected.
+- Wrong element types passed to `byId()` or `el()` in `src/main.ts`.
+
+What it does not catch:
+
+- Whether each zone has exactly three examples. `EXAMPLES` is typed `readonly string[]`, so any length passes.
+- Geometry mismatches between `index.html` and `src/geometry.ts`.
+- Missing element IDs in `index.html`. Those only fail at runtime, when `byId()` throws `Missing #id`.
+- Anything visual or interactive.
 
 ## Manual checklist
 
-Run this after any change. It takes about two minutes.
+Run this after any change. It takes about two minutes. Use `npm run dev`, or `npm run preview` to check the production bundle.
 
 ### Load
 
@@ -32,16 +51,20 @@ Run this after any change. It takes about two minutes.
 - [ ] At widths below 600 px, the SVG labels are still readable.
 - [ ] On a touch device or touch emulation, tapping a zone pins it.
 
-## Quick data check from the console
+### After deploy
 
-Paste this in the DevTools console to confirm every zone has content and three examples. `ZONES` and `EXAMPLES` are top-level `const` declarations in `script.js`, so they are reachable from the console.
+- [ ] https://franklinp44.github.io/ikigai/ loads with styles and scripts (no 404s for files under `assets/` in the Network tab).
 
-```js
-Object.keys(ZONES).every(k => EXAMPLES[k] && EXAMPLES[k].length === 3)
+## Quick data check
+
+The old console snippet no longer works. `ZONES` and `EXAMPLES` are now module exports in `src/data.ts`, so they are not globals in the browser console. The type check already guarantees every zone key has an entry in both. To confirm each zone has three examples, read `EXAMPLES` in `src/data.ts`, or add a temporary line at the end of `src/main.ts` while running `npm run dev`:
+
+```ts
+console.log(ZONE_KEYS.every(k => EXAMPLES[k].length === 3));
 ```
 
-It should return `true`.
+It should log `true`. `src/main.ts` already imports `ZONE_KEYS` and `EXAMPLES` from `./data`. Remove the line before committing.
 
 ## If you add automated tests
 
-A browser test runner such as Playwright would fit best, since most behavior depends on SVG geometry and pointer events. The pure functions `zoneAt()` and the data objects in `script.js` could be unit tested if the file were split into a module. Neither exists today. See [Cleanup opportunities](../cleanup-opportunities.md).
+A browser test runner such as Playwright would fit best, since most behavior depends on SVG geometry and pointer events. Since the migration, `zoneAt()` in `src/geometry.ts` and the data in `src/data.ts` are separate modules with no DOM access, so they could be unit tested with a runner such as Vitest without further refactoring. Neither runner is installed today. See [Cleanup opportunities](../cleanup-opportunities.md).

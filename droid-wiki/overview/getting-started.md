@@ -1,41 +1,41 @@
 # Getting started
 
-The project has no dependencies to install and nothing to build. You need a modern browser and, optionally, any static file server.
+The app is a TypeScript project built with Vite. You need Node.js and npm to run it locally; the only dependencies are the dev tools TypeScript and Vite.
 
 ## Prerequisites
 
-- A current version of Chrome, Edge, Firefox, or Safari. The code uses SVG masks, `mix-blend-mode`, `backdrop-filter`, and pointer events.
+- Node.js 20.19+ or 22.12+, and npm. These are the versions listed in `README.md` (CI uses Node 22).
 - Git, to clone the repository.
-- Optional: Python 3 or Node.js, if you prefer serving the files over HTTP instead of opening them from disk.
-- An internet connection for the Google Fonts stylesheet. Without it, the page falls back to Georgia and system sans-serif fonts (see `styles.css`).
+- A current version of Chrome, Edge, Firefox, or Safari. The code uses ES modules, SVG masks, `mix-blend-mode`, `backdrop-filter`, and pointer events.
+- An internet connection for the Google Fonts stylesheet. Without it, the page falls back to Georgia and system sans-serif fonts (see `src/styles.css`).
 
-## Clone
+## Clone and install
 
 ```bash
 git clone https://github.com/FranklinP44/ikigai.git
 cd ikigai
+npm ci        # exact versions from package-lock.json (what CI runs)
+# or: npm install
 ```
+
+`package.json` sets `allowScripts: { fsevents: false }`, which blocks the install script of the optional `fsevents` package on macOS. The package ships a prebuilt binary, so nothing breaks.
 
 ## Run
 
-Option 1, open the file directly:
-
 ```bash
-open index.html        # macOS
-xdg-open index.html    # Linux
-start index.html       # Windows
+npm run dev       # Vite dev server at http://localhost:5173
 ```
 
-Option 2, serve it locally (closer to how it would be hosted):
+The dev server compiles `src/main.ts` on request and reloads the page when you save a file. It does not type-check; run `npm run build` (or `npx tsc --noEmit`) to catch type errors.
+
+## Build and preview
 
 ```bash
-python3 -m http.server 8000
-# then visit http://localhost:8000
+npm run build     # tsc --noEmit, then vite build into dist/
+npm run preview   # serve dist/ at http://localhost:4173
 ```
 
-```bash
-npx serve .
-```
+`dist/` is ignored by Git. Do not open `index.html` or `dist/index.html` directly from disk with `file://`. The root `index.html` points at `/src/main.ts`, which only Vite can serve, and the built page loads a module script, which browsers block over `file://`. Use `npm run dev` or `npm run preview`, or any static file server pointed at `dist/`.
 
 ## Verify it works
 
@@ -46,4 +46,4 @@ npx serve .
 
 ## Build and test
 
-There is no build or automated test suite. Changes are checked by reloading the page in a browser. See [Testing](../how-to-contribute/testing.md) for a manual checklist, and [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop.
+There is no automated test suite. Type checking (`tsc --noEmit`, the first half of `npm run build`) is the only automated check, and CI runs it on every pull request. Behavior is checked by hand in the browser. See [Testing](../how-to-contribute/testing.md) for a manual checklist, [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop, and [Deployment](../deployment.md) for how `main` is published to GitHub Pages.

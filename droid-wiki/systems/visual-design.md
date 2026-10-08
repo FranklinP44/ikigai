@@ -4,26 +4,27 @@ Active contributors: Franklin Pfaller
 
 ## Purpose
 
-All styling lives in `styles.css`. It defines the palette and fonts as CSS custom properties, animates the diagram in on load, styles the detail panel, and adapts the layout for tablets and phones.
+All styling lives in `src/styles.css`. It defines the palette and fonts as CSS custom properties, animates the diagram in on load, styles the detail panel, and adapts the layout for tablets and phones. `index.html` links it with `<link rel="stylesheet" href="/src/styles.css">`. The Vite dev server serves that path directly, and `npm run build` bundles it into a hashed file under `dist/assets/` and rewrites the link to a relative URL (see [Deployment](../deployment.md)).
 
 ## Directory layout
 
 ```text
 ikigai/
-├── styles.css   # tokens, layout grid, diagram, panel, media queries
-└── index.html   # Google Fonts <link>, SVG fills that reference var(--love) etc.
+├── index.html       # Google Fonts <link>, stylesheet link, SVG fills that reference var(--love) etc.
+└── src/
+    └── styles.css   # tokens, layout grid, diagram, panel, media queries
 ```
 
 ## Key abstractions
 
 | Name | File | Description |
 | --- | --- | --- |
-| `:root` custom properties | `styles.css` | Background, ink, muted, line colors, four circle colors, serif and sans font stacks |
-| `.wrap` | `styles.css` | Two-column grid (diagram 1.3fr, panel 0.7fr, min 300 px), max width 1180 px |
-| `@keyframes pop` | `styles.css` | Circle entrance: fade and scale from 0.82 to 1 |
-| `@keyframes fade` | `styles.css` | Opacity fade for the center fill, overlays, outlines, and labels |
-| `.circle` | `styles.css` | `mix-blend-mode: multiply` and `fill-opacity: 0.82` so overlaps darken like ink |
-| `.card` | `styles.css` | Frosted panel: translucent white, `backdrop-filter: blur(8px)`, 22 px radius |
+| `:root` custom properties | `src/styles.css` | Background, ink, muted, line colors, four circle colors, serif and sans font stacks |
+| `.wrap` | `src/styles.css` | Two-column grid (diagram 1.3fr, panel 0.7fr, min 300 px), max width 1180 px |
+| `@keyframes pop` | `src/styles.css` | Circle entrance: fade and scale from 0.82 to 1 |
+| `@keyframes fade` | `src/styles.css` | Opacity fade for the center fill, overlays, outlines, and labels |
+| `.circle` | `src/styles.css` | `mix-blend-mode: multiply` and `fill-opacity: 0.82` so overlaps darken like ink |
+| `.card` | `src/styles.css` | Frosted panel: translucent white, `backdrop-filter: blur(8px)`, 22 px radius |
 
 ## How it works
 
@@ -42,7 +43,7 @@ ikigai/
 | `--serif` | Fraunces, Georgia, Times New Roman | Headings, pair labels |
 | `--sans` | Inter, system-ui, ... | Body text, circle labels |
 
-Japanese text (`.kanji`, `.label-center-jp`) uses Noto Serif JP directly.
+Japanese text (`.kanji`, `.label-center-jp`) uses Noto Serif JP directly. All three web fonts load from Google Fonts via a `<link>` in `index.html`; Vite leaves that external URL unchanged.
 
 ### Entrance sequence
 
@@ -61,21 +62,23 @@ The circles use `transform-box: fill-box` and `transform-origin: center` so each
 | ≤ 900 px | Single column, diagram above panel, no card minimum height |
 | ≤ 600 px | Tighter padding, and larger SVG label font sizes |
 
-The phone breakpoint enlarges SVG text because the SVG scales down with the viewport, which would otherwise make labels too small to read. The comment above the media query in `styles.css` notes this.
+The phone breakpoint enlarges SVG text because the SVG scales down with the viewport, which would otherwise make labels too small to read. The comment above the media query in `src/styles.css` notes this.
 
 ## Integration points
 
-- SVG circle fills in `index.html` and chip dots built by `render()` in `script.js` reference the circle tokens, so changing a token recolors the diagram and the chips together.
-- State classes toggled by JavaScript (`.active`, `.swap`, `.hovering`, `.off`) are defined here. See [Zone exploration](../features/zone-exploration.md) and [Detail panel](../features/detail-panel.md).
+- SVG circle fills in `index.html` and chip dots built by `render()` in `src/main.ts` reference the circle tokens (via `CIRCLE[k].color` in `src/data.ts`, for example `var(--love)`), so changing a token recolors the diagram and the chips together.
+- State classes toggled by `src/main.ts` (`.active`, `.swap`, `.hovering`, `.off`) are defined here. See [Zone exploration](../features/zone-exploration.md) and [Detail panel](../features/detail-panel.md).
+- The stylesheet is plain CSS. There is no preprocessor or PostCSS config in the repo; Vite only bundles and fingerprints it.
 
 ## Entry points for modification
 
-To retheme, change the `:root` tokens in `styles.css`. To adjust motion, edit the `pop`/`fade` keyframes and their delays. If you change the `.card .content` transition duration, keep the 140 ms timeout in `setZone()` in `script.js` slightly shorter so new content appears while the panel is faded out.
+To retheme, change the `:root` tokens in `src/styles.css`. To adjust motion, edit the `pop`/`fade` keyframes and their delays. If you change the `.card .content` transition duration, keep the 140 ms timeout in `setZone()` in `src/main.ts` slightly shorter so new content appears while the panel is faded out.
 
 ## Key source files
 
 | File | Purpose |
 | --- | --- |
-| `styles.css` | All tokens, layout, animation, and responsive rules |
-| `index.html` | Font loading and token references in SVG fills |
-| `script.js` | Inline chip colors from `CIRCLE[k].color` |
+| `src/styles.css` | All tokens, layout, animation, and responsive rules |
+| `index.html` | Font loading, the stylesheet link, and token references in SVG fills |
+| `src/data.ts` | Circle colors in `CIRCLE`, expressed as CSS variables |
+| `src/main.ts` | Inline chip colors from `CIRCLE[k].color` |
