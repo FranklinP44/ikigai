@@ -1,5 +1,6 @@
 import { CIRCLE, EXAMPLES, ORDER, ZONES, ZONE_KEYS, isZoneKey, type ZoneKey } from "./data";
 import { CENTERS, R, zoneAt } from "./geometry";
+import { readShareParams, trackPin } from "./share";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -20,6 +21,7 @@ const descEl = byId("desc", HTMLElement);
 const chipsEl = byId("chips", HTMLElement);
 const examplesEl = byId("examples", HTMLElement);
 const pills = document.querySelectorAll<HTMLButtonElement>(".pill");
+const share = readShareParams();
 
 type Attrs = Record<string, string | number>;
 
@@ -69,14 +71,13 @@ function zoneForEvent(e: PointerEvent | MouseEvent): ZoneKey | null {
 }
 
 let current: ZoneKey | null = null;
-let pinned: ZoneKey = "LGNP";
-let swapTimer: number | undefined;
+let pinned: ZoneKey = share.zone;
 
 function render(key: ZoneKey): void {
   const z = ZONES[key];
   eyebrowEl.textContent = z.eyebrow;
   titleEl.textContent = z.title;
-  descEl.textContent = z.desc;
+  descEl.innerHTML = share.note ? `${z.desc}<br><em>Your note: ${share.note}</em>` : z.desc;
   // Content is static and trusted, so markup strings keep the DOM identical to the original page.
   chipsEl.innerHTML = ORDER.map(k =>
     `<span class="chip ${key.includes(k) ? "" : "off"}"><i style="background:${CIRCLE[k].color}"></i>${CIRCLE[k].name}</span>`
@@ -89,10 +90,9 @@ function setZone(key: ZoneKey, instant = false): void {
   current = key;
   for (const k of ZONE_KEYS) zoneEls[k].classList.toggle("active", k === key);
   pills.forEach(p => p.classList.toggle("active", p.dataset.zone === key));
-  window.clearTimeout(swapTimer);
   if (instant) { render(key); return; }
   content.classList.add("swap");
-  swapTimer = window.setTimeout(() => { render(key); content.classList.remove("swap"); }, 140);
+  window.setTimeout(() => { render(key); content.classList.remove("swap"); }, 140);
 }
 
 svg.addEventListener("pointermove", e => {
@@ -103,11 +103,19 @@ svg.addEventListener("pointermove", e => {
 svg.addEventListener("pointerleave", () => { svg.classList.remove("hovering"); setZone(pinned); });
 svg.addEventListener("click", e => {
   const key = zoneForEvent(e);
-  if (key) { pinned = key; setZone(key); }
+  if (key) { pinned = key; setZone(key); trackPin(key, share.note); }
 });
 pills.forEach(p => p.addEventListener("click", () => {
   const zone = p.dataset.zone;
   if (zone && isZoneKey(zone)) { pinned = zone; setZone(pinned); }
 }));
 
-setZone("LGNP", true);
+document.addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const idx = ZONE_KEYS.indexOf(current ?? pinned);
+  const step = e.key === "ArrowRight" ? 1 : -1;
+  pinned = ZONE_KEYS[(idx + step) % (ZONE_KEYS.length + 1)];
+  setZone(pinned);
+});
+
+setZone(pinned, true);
