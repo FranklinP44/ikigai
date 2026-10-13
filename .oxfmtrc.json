@@ -2,5 +2,5 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 100,
   "arrowParens": "avoid",
-  "ignorePatterns": ["dist/**", "droid-wiki/**", "package-lock.json"]
+  "ignorePatterns": ["dist/**", "coverage/**", "reports/**", "droid-wiki/**", "package-lock.json"]
 }
