@@ -1,0 +1,3 @@
+npx --no-install lint-staged
+npx --no-install tsc --noEmit
+node scripts/check-agents-md.mjs

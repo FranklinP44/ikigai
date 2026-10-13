@@ -23,7 +23,11 @@ const pills = document.querySelectorAll<HTMLButtonElement>(".pill");
 
 type Attrs = Record<string, string | number>;
 
-function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Attrs, parent?: Element): SVGElementTagNameMap[K] {
+function el<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  attrs: Attrs,
+  parent?: Element,
+): SVGElementTagNameMap[K] {
   const n = document.createElementNS(NS, tag);
   for (const k in attrs) n.setAttribute(k, String(attrs[k]));
   if (parent) parent.appendChild(n);
@@ -42,8 +46,9 @@ let uid = 0;
 function region(key: ZoneKey, fill: string, parent: Element, cls?: string): SVGGElement {
   const out = el("mask", { id: "out-" + uid++, ...FULL }, defs);
   el("rect", { x: 0, y: 0, width: 800, height: 800, fill: "#fff" }, out);
-  ORDER.filter(k => !key.includes(k))
-    .forEach(k => el("circle", { cx: CENTERS[k][0], cy: CENTERS[k][1], r: R, fill: "#000" }, out));
+  ORDER.filter(k => !key.includes(k)).forEach(k =>
+    el("circle", { cx: CENTERS[k][0], cy: CENTERS[k][1], r: R, fill: "#000" }, out),
+  );
   const g = el("g", { mask: `url(#${out.id})`, class: cls || "", "data-zone": key }, parent);
   let inner: SVGGElement = g;
   for (const k of key) inner = el("g", { mask: `url(#in-${k})` }, inner);
@@ -54,7 +59,12 @@ function region(key: ZoneKey, fill: string, parent: Element, cls?: string): SVGG
 region("LGNP", "url(#gold)", centerFill);
 const zoneEls = {} as Record<ZoneKey, SVGGElement>;
 for (const key of ZONE_KEYS) {
-  zoneEls[key] = region(key, key === "LGNP" ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.5)", zonesLayer, "zone");
+  zoneEls[key] = region(
+    key,
+    key === "LGNP" ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.5)",
+    zonesLayer,
+    "zone",
+  );
 }
 
 function toSvg(e: PointerEvent | MouseEvent): DOMPoint | null {
@@ -78,8 +88,9 @@ function render(key: ZoneKey): void {
   titleEl.textContent = z.title;
   descEl.textContent = z.desc;
   // Content is static and trusted, so markup strings keep the DOM identical to the original page.
-  chipsEl.innerHTML = ORDER.map(k =>
-    `<span class="chip ${key.includes(k) ? "" : "off"}"><i style="background:${CIRCLE[k].color}"></i>${CIRCLE[k].name}</span>`
+  chipsEl.innerHTML = ORDER.map(
+    k =>
+      `<span class="chip ${key.includes(k) ? "" : "off"}"><i style="background:${CIRCLE[k].color}"></i>${CIRCLE[k].name}</span>`,
   ).join("");
   examplesEl.innerHTML = EXAMPLES[key].map(x => `<li>${x}</li>`).join("");
 }
@@ -90,9 +101,15 @@ function setZone(key: ZoneKey, instant = false): void {
   for (const k of ZONE_KEYS) zoneEls[k].classList.toggle("active", k === key);
   pills.forEach(p => p.classList.toggle("active", p.dataset.zone === key));
   window.clearTimeout(swapTimer);
-  if (instant) { render(key); return; }
+  if (instant) {
+    render(key);
+    return;
+  }
   content.classList.add("swap");
-  swapTimer = window.setTimeout(() => { render(key); content.classList.remove("swap"); }, 140);
+  swapTimer = window.setTimeout(() => {
+    render(key);
+    content.classList.remove("swap");
+  }, 140);
 }
 
 svg.addEventListener("pointermove", e => {
@@ -100,14 +117,25 @@ svg.addEventListener("pointermove", e => {
   svg.classList.toggle("hovering", !!key);
   setZone(key || pinned);
 });
-svg.addEventListener("pointerleave", () => { svg.classList.remove("hovering"); setZone(pinned); });
+svg.addEventListener("pointerleave", () => {
+  svg.classList.remove("hovering");
+  setZone(pinned);
+});
 svg.addEventListener("click", e => {
   const key = zoneForEvent(e);
-  if (key) { pinned = key; setZone(key); }
+  if (key) {
+    pinned = key;
+    setZone(key);
+  }
 });
-pills.forEach(p => p.addEventListener("click", () => {
-  const zone = p.dataset.zone;
-  if (zone && isZoneKey(zone)) { pinned = zone; setZone(pinned); }
-}));
+pills.forEach(p =>
+  p.addEventListener("click", () => {
+    const zone = p.dataset.zone;
+    if (zone && isZoneKey(zone)) {
+      pinned = zone;
+      setZone(pinned);
+    }
+  }),
+);
 
 setZone("LGNP", true);
