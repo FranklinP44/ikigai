@@ -1,5 +1,9 @@
 node_modules
 dist
 
+# Test output: coverage reports and Vitest JSON/JUnit results
+coverage/
+reports/
+
 # Local Confluence dry-run output
 build/

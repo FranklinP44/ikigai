@@ -46,4 +46,4 @@ npm run preview   # serve dist/ at http://localhost:4173
 
 ## Build and test
 
-There is no automated test suite. Type checking (`tsc --noEmit`, the first half of `npm run build`) is the only automated check, and CI runs it on every pull request. Behavior is checked by hand in the browser. See [Testing](../how-to-contribute/testing.md) for a manual checklist, [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop, and [Deployment](../deployment.md) for how `main` is published to GitHub Pages.
+Run the Vitest unit tests with `npm run test`. They cover the zone data, the hit-testing geometry, and the SVG markup in `index.html`. CI runs them on every pull request, along with lint, the format check and the type check in `npm run build`. Interactive behavior is checked by hand in the browser. See [Testing](../how-to-contribute/testing.md) for a manual checklist, [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop, and [Deployment](../deployment.md) for how `main` is published to GitHub Pages.

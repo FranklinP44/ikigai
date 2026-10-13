@@ -39,6 +39,7 @@ const CORPUS_FILES = [
   "package.json",
   "tsconfig.json",
   "vite.config.ts",
+  "vitest.config.ts",
   ".oxlintrc.json",
   ".oxfmtrc.json",
   ".husky/pre-commit",

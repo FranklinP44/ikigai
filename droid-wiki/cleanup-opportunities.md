@@ -8,7 +8,7 @@ The codebase is small and clean, with no dead code and no TODO comments. The Typ
 | Replace `innerHTML` with DOM building in `render()` | `src/main.ts` | Makes the panel safe if content ever comes from outside `src/data.ts`. A comment in `render()` records that the current choice is deliberate |
 | Read the swap duration from CSS, or define it once | `src/main.ts`, `src/styles.css` | Keeps the 140 ms timeout in `setZone()` and the `.18s` `.card .content` transition in sync |
 | Add keyboard access to all 13 zones | `index.html`, `src/main.ts` | Today only the five Explore pills are keyboard reachable |
-| Add a basic Playwright smoke test | new | Automates the manual checklist in [Testing](how-to-contribute/testing.md). Type checking is the only automated check today |
+| Add a basic Playwright smoke test | new | Automates the manual checklist in [Testing](how-to-contribute/testing.md). The Vitest unit tests do not cover pointer events or rendering |
 | Declare the Node version in `package.json` | `package.json` | `README.md` requires Node 20.19+ or 22.12+ (the range Vite and rolldown declare), but there is no `engines` field, so older Node versions fail with less clear errors |
 | Use one Node version across workflows | `.github/workflows/publish-wiki-to-confluence.yml`, `.github/workflows/deploy-pages.yml` | The Pages workflow uses Node 22 and the Confluence workflow uses Node 20. Not a bug, just two versions to track |
 | Pin `@mermaid-js/mermaid-cli` more tightly | `.github/workflows/publish-wiki-to-confluence.yml` | It is installed as `@mermaid-js/mermaid-cli@11`, so any 11.x release can change diagram rendering between runs. The Python dependencies, by contrast, are pinned exactly |

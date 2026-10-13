@@ -11,16 +11,22 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:durations": "node scripts/report-test-durations.mjs",
     "check:agents-md": "node scripts/check-agents-md.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.11",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.2"
+    "vite": "^8.3.2",
+    "vitest": "^4.1.11"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [

@@ -18,11 +18,27 @@ npm run lint          # Oxlint; warnings fail the run
 npm run lint:fix      # apply Oxlint autofixes
 npm run format        # format files in place with Oxfmt
 npm run format:check  # fail if any file is not formatted
+npm run test          # run the Vitest unit tests once
+npm run test:watch    # rerun the unit tests on every change
+npm run test:coverage # run the unit tests once with coverage; fails below the thresholds
+npm run test:durations   # summarize how long the last test run took, slowest tests first
 npm run preview       # serve dist/ at http://localhost:4173
 npm run check:agents-md  # fail if this file no longer matches the code
 ```
 
-There is no automated test suite. Before finishing a change, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, and `npm run build`. CI (`.github/workflows/deploy-pages.yml`) runs the same four checks on every pull request.
+Before finishing a change, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. CI (`.github/workflows/deploy-pages.yml`) runs the same five checks on every pull request, then runs `npm run test:durations` and uploads the test and coverage reports as a build artifact.
+
+## Tests
+
+Unit tests use [Vitest](https://vitest.dev/), configured in `vitest.config.ts`. `npm run test` runs them once; `npm run test:watch` reruns them on change.
+
+- **Naming and location.** Put a test next to the module it covers, named after it with a .test.ts suffix: `src/geometry.test.ts` covers `src/geometry.ts`. Tests that check `index.html` live in `src/index-html.test.ts`. Vitest only collects .test.ts files under `src/`, and the lint rule `vitest/consistent-test-filename` rejects other names such as .spec.ts.
+- **Structure.** One `describe` block per exported name, with `it` titles that read as sentences about behavior. Import `describe`, `it`, and `expect` from `vitest`; globals are off. Use `it.each` for tables of cases.
+- **What to test.** Tests run in Node with no DOM. Test `src/data.ts` and `src/geometry.ts` directly. Never import `src/main.ts`, because it queries the DOM when it loads; read it or `index.html` as text with a `?raw` import instead, as `src/index-html.test.ts` does.
+- **Isolation.** Each test file runs in its own worker thread with a fresh module graph (`pool` set to `threads`, `isolate` on), and `shuffle` randomizes file and test order on every run. Tests must not depend on order or on state left by another test. Vitest prints the seed at the start of a run; rerun with `npx vitest run --sequence.seed=<seed>` to reproduce an order-dependent failure.
+- **Coverage.** `npm run test:coverage` measures coverage of `src/data.ts` and `src/geometry.ts` and fails if statements, branches, functions, or lines drop below the `thresholds` in `vitest.config.ts` (100% each). `src/main.ts` is excluded because it cannot run without a DOM. When you add code to the pure modules, add tests for it; do not lower the thresholds or widen the coverage `exclude` list to get a green run.
+- **Duration.** Tests slower than `slowTestThreshold` (1 second) are highlighted in the output. Every run writes a JSON report that `npm run test:durations` (`scripts/report-test-durations.mjs`) turns into a table of file and test durations; it warns about any test over 1 second or a suite over 10 seconds. In CI the table goes to the job summary. Keep new tests fast; if one must be slow, say why in the test.
+- **Keeping tests current.** When you change zone content, circle geometry, or the SVG markup, run the tests and update the expectations that intentionally changed. Do not delete or skip a failing test to get a green run; `vitest/no-disabled-tests` and `vitest/no-focused-tests` fail lint on skipped and focused tests.
 
 ## Keeping this file current
 
@@ -36,7 +52,7 @@ When you rename, add, or remove something this file mentions, update this file i
 
 ## Pre-commit hook
 
-`.husky/pre-commit` runs `lint-staged` (Oxlint with autofix, then Oxfmt, on staged files; configured under `lint-staged` in `package.json`), then `tsc --noEmit`, then the AGENTS.md check. Fix the reported problems instead of bypassing the hook with `--no-verify`.
+`.husky/pre-commit` runs `lint-staged` (Oxlint with autofix, then Oxfmt, on staged files; configured under `lint-staged` in `package.json`), then `tsc --noEmit`, then the AGENTS.md check, then the unit tests (`vitest run`, under a second). Fix the reported problems instead of bypassing the hook with `--no-verify`.
 
 ## Naming conventions
 

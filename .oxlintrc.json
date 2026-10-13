@@ -44,6 +44,21 @@
       }
     },
     {
+      "files": ["src/**/*.{test,spec}.ts"],
+      "plugins": ["vitest"],
+      "rules": {
+        "vitest/consistent-test-filename": "error",
+        "vitest/expect-expect": "error",
+        "vitest/no-conditional-expect": "error",
+        "vitest/no-disabled-tests": "error",
+        "vitest/no-focused-tests": "error",
+        "vitest/no-identical-title": "error",
+        "vitest/no-standalone-expect": "error",
+        "vitest/valid-expect": "error",
+        "vitest/valid-title": "error"
+      }
+    },
+    {
       "files": ["scripts/**"],
       "env": {
         "browser": false,
@@ -54,5 +69,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/**", "droid-wiki/**", ".github/**"]
+  "ignorePatterns": ["dist/**", "coverage/**", "reports/**", "droid-wiki/**", ".github/**"]
 }

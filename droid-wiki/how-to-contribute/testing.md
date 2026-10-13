@@ -1,12 +1,32 @@
 # Testing
 
-There are no automated tests and no test framework in the repository. The only automated check is the TypeScript type check, which runs as part of `npm run build`. Behavior is tested manually in a browser.
+The repository has a Vitest unit test suite plus a manual browser checklist. Run the tests with `npm run test` (or `npm run test:watch` while editing). CI runs them on every pull request, along with the type check in `npm run build`.
+
+## Unit tests
+
+Vitest is configured in `vitest.config.ts`, which extends `vite.config.ts`. Tests run in Node with no DOM, so they cover the pure modules and read markup as text.
+
+| File | What it checks |
+| --- | --- |
+| `src/data.test.ts` | `ZONE_KEYS` order and uniqueness, `isZoneKey()`, that `ZONES`, `EXAMPLES` and `CIRCLE` have exactly the right keys, three examples per zone, eyebrows that match the number of circles, and examples free of markup (they are rendered with `innerHTML`) |
+| `src/geometry.test.ts` | `zoneAt()` at known points (labels, dots, edges, outside), and a scan of every integer point that confirms the circles only form known zones and reach all 13 |
+| `src/index-html.test.ts` | that the circles and outlines in `index.html` match `CENTERS` and `R`, that the dots and pair labels sit in the right zones, that each pill has a valid `data-zone` and matching title, and that every `byId()` id in `src/main.ts` exists in `index.html` |
+
+Conventions, enforced by `vitest.config.ts` and the `vitest` lint rules in `.oxlintrc.json`:
+
+- Test files sit next to the module they cover and end in `.test.ts`. Other names, such as `.spec.ts`, fail lint.
+- Each test file runs in its own worker thread with a fresh module graph, and file and test order is shuffled on every run. Rerun with `npx vitest run --sequence.seed=<seed>` (the seed is printed at the start of the run) to reproduce an order-dependent failure.
+- `.only` and `.skip` fail lint.
+
+## Coverage and durations
+
+`npm run test:coverage` runs the suite with V8 coverage over `src/data.ts` and `src/geometry.ts` and fails if statements, branches, functions or lines fall below 100%. `src/main.ts` is excluded because it touches the DOM as it loads. The text report prints to the console, and an HTML report is written to `coverage/`.
+
+Every test run also writes a JSON report to `reports/test-results.json` (and, on GitHub Actions, a JUnit report to `reports/junit.xml`). `npm run test:durations` reads it and prints the total run time, the time per file and the ten slowest tests, with a warning for any test over 1 second or a suite over 10 seconds. In CI the same table is added to the job summary, and `coverage/` and `reports/` are uploaded as the `test-reports` artifact so durations can be compared across runs. The full-grid scan in `src/geometry.test.ts` is the slowest test, at about half a second.
 
 ## Automated check: type checking
 
-`npm run build` runs `tsc --noEmit && vite build`. The type check uses the strict settings in `tsconfig.json` (`strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`) over everything in `src/`.
-
-The `build` job in `.github/workflows/deploy-pages.yml` runs `npm ci` and `npm run build` on every pull request, so a type error blocks a green PR. See [Deployment](../deployment.md).
+`npm run build` runs `tsc --noEmit && vite build`. The type check uses the strict settings in `tsconfig.json` (`strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`) over everything in `src/`, including the tests.
 
 What the type check catches:
 
@@ -14,16 +34,14 @@ What the type check catches:
 - A misspelled zone key such as `"LGX"` anywhere a `ZoneKey` is expected.
 - Wrong element types passed to `byId()` or `el()` in `src/main.ts`.
 
-What it does not catch:
+What neither the type check nor the unit tests catch:
 
-- Whether each zone has exactly three examples. `EXAMPLES` is typed `readonly string[]`, so any length passes.
-- Geometry mismatches between `index.html` and `src/geometry.ts`.
-- Missing element IDs in `index.html`. Those only fail at runtime, when `byId()` throws `Missing #id`.
-- Anything visual or interactive.
+- Anything visual or interactive, such as hover, click and the swap animation.
+- Styling and responsive layout.
 
 ## Manual checklist
 
-Run this after any change. It takes about two minutes. Use `npm run dev`, or `npm run preview` to check the production bundle.
+Run this after any change to `src/main.ts`, `src/styles.css` or `index.html`. It takes about two minutes. Use `npm run dev`, or `npm run preview` to check the production bundle.
 
 ### Load
 
@@ -55,16 +73,6 @@ Run this after any change. It takes about two minutes. Use `npm run dev`, or `np
 
 - [ ] https://franklinp44.github.io/ikigai/ loads with styles and scripts (no 404s for files under `assets/` in the Network tab).
 
-## Quick data check
+## Browser tests
 
-The old console snippet no longer works. `ZONES` and `EXAMPLES` are now module exports in `src/data.ts`, so they are not globals in the browser console. The type check already guarantees every zone key has an entry in both. To confirm each zone has three examples, read `EXAMPLES` in `src/data.ts`, or add a temporary line at the end of `src/main.ts` while running `npm run dev`:
-
-```ts
-console.log(ZONE_KEYS.every(k => EXAMPLES[k].length === 3));
-```
-
-It should log `true`. `src/main.ts` already imports `ZONE_KEYS` and `EXAMPLES` from `./data`. Remove the line before committing.
-
-## If you add automated tests
-
-A browser test runner such as Playwright would fit best, since most behavior depends on SVG geometry and pointer events. Since the migration, `zoneAt()` in `src/geometry.ts` and the data in `src/data.ts` are separate modules with no DOM access, so they could be unit tested with a runner such as Vitest without further refactoring. Neither runner is installed today. See [Cleanup opportunities](../cleanup-opportunities.md).
+Interaction is still checked by hand. A browser test runner such as Playwright would fit best for that, since it depends on SVG masks and pointer events. It is not installed today. See [Cleanup opportunities](../cleanup-opportunities.md).
