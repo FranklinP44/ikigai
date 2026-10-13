@@ -1,8 +1,10 @@
 name: Droid Auto Review
 
+# Runs only on demand: add the droid-review label to a pull request to start a code and security
+# review. While the label is present, new commits re-run the code review.
 on:
   pull_request:
-    types: [opened, ready_for_review, reopened]
+    types: [labeled, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -10,7 +12,12 @@ concurrency:
 
 jobs:
   droid-review:
-    if: github.event.pull_request.draft == false
+    # The droid-action label_trigger input is not used, so the label gate lives here. On labeled
+    # events, only the droid-review label itself starts a run, so unrelated labels don't re-run it.
+    if: >-
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'droid-review') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'droid-review')
     runs-on: ubuntu-latest
     permissions:
       contents: write
