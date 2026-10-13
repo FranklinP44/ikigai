@@ -26,7 +26,7 @@ npm run preview       # serve dist/ at http://localhost:4173
 npm run check:agents-md  # fail if this file no longer matches the code
 ```
 
-Before finishing a change, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. CI (`.github/workflows/deploy-pages.yml`) runs the same five checks on every pull request, then runs `npm run test:durations` and uploads the test and coverage reports as a build artifact.
+Before finishing a change, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. CI (`.github/workflows/deploy-pages.yml`) runs the same five checks on every pull request, and also runs `npm run test:durations` and uploads the test and coverage reports as a build artifact between the coverage and build steps.
 
 ## Tests
 
