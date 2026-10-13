@@ -28,6 +28,31 @@ npm run check:agents-md  # fail if AGENTS.md no longer matches the code
 
 The built page must be served over HTTP (for example with `npm run preview` or any static file host); opening `dist/index.html` directly from disk is not supported.
 
+## Environment variables
+
+The app needs none. Every command above works without a `.env` file, and the page reads no environment variables at runtime.
+
+The only script that reads environment variables is `.github/scripts/publish_confluence.py`, which publishes `droid-wiki/` to Confluence. `.env.example` lists each variable with its default and where CI gets it from. To run the script locally, copy the template to `.env` (it is gitignored), fill it in, and load it into your shell:
+
+```sh
+cp .env.example .env
+set -a; . ./.env; set +a
+python .github/scripts/publish_confluence.py --dry-run
+```
+
+| Variable                | Required            | Purpose                                                         |
+| ----------------------- | ------------------- | --------------------------------------------------------------- |
+| `CONFLUENCE_URL`        | To publish          | Confluence Cloud site URL, such as `https://acme.atlassian.net` |
+| `CONFLUENCE_SPACE_KEY`  | To publish          | Key of the target space                                         |
+| `CONFLUENCE_EMAIL`      | To publish          | Atlassian account email for the API token                       |
+| `CONFLUENCE_API_TOKEN`  | To publish          | Atlassian API token (secret)                                    |
+| `CONFLUENCE_ROOT_TITLE` | No (`Ikigai wiki`)  | Title of the root page that holds the wiki                      |
+| `CONFLUENCE_PARENT_ID`  | No (space homepage) | Page to create the root page under                              |
+| `WIKI_DIR`              | No (`droid-wiki`)   | Wiki folder to publish                                          |
+| `MMDC`                  | No (`mmdc`)         | mermaid-cli command used to render diagrams                     |
+
+`--dry-run` works without the four Confluence variables; it then only converts pages and renders diagrams into `build/confluence/`. GitHub Actions also sets `GITHUB_ACTIONS`, `GITHUB_STEP_SUMMARY`, `GITHUB_SERVER_URL`, `GITHUB_REPOSITORY`, and `GITHUB_SHA`; leave them unset locally.
+
 ## Deployment
 
 Pushes to `main` are built and deployed to GitHub Pages by `.github/workflows/deploy-pages.yml`. Pull requests run the same AGENTS.md check, lint, format check, unit tests with coverage, and build without deploying. Each run also writes a test duration summary to the job summary and uploads the coverage and test reports as the `test-reports` artifact.
@@ -50,6 +75,10 @@ Pushes to `main` are built and deployed to GitHub Pages by `.github/workflows/de
 - `.oxlintrc.json`: Oxlint rules, including naming rules (Oxlint is used instead of typescript-eslint, which does not support TypeScript 7)
 - `.oxfmtrc.json`: Oxfmt formatter settings
 - `.husky/pre-commit`: pre-commit hook; the staged-file commands are under `lint-staged` in `package.json`
+- `.github/CODEOWNERS`: owners who are requested for review on pull requests
+- `.github/dependabot.yml`: weekly Dependabot pull requests for npm packages and GitHub Actions, and monthly ones for the Confluence script's Python packages
+- `.github/pull_request_template.md` and `.github/ISSUE_TEMPLATE/`: pull request template and issue forms (bug, feature, accessibility)
 - `AGENTS.md`: instructions and naming conventions for contributors and coding agents
+- `.env.example`: template for the environment variables used by the Confluence publish script (the app needs none)
 - `scripts/check-agents-md.mjs`: fails when `AGENTS.md` cites commands, paths or names that no longer exist
 - `droid-wiki/`: generated codebase wiki, published to Confluence by `.github/workflows/publish-wiki-to-confluence.yml`

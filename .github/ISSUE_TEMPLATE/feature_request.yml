@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a new feature, content change, or improvement.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Describe the problem first; the solution can follow.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Diagram interaction
+        - Detail panel or Explore pills
+        - Zone or example text
+        - Layout or styling
+        - Developer tooling, tests, or CI
+        - Documentation or wiki
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What should change? For text changes, quote the current and the proposed wording.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, and why you prefer the proposal.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How will we know it is done?
+      description: Observable outcomes or checks that would confirm the change works.
+      placeholder: |
+        - Tapping a region on a phone shows the same panel as hovering on desktop
+        - Unit tests cover the new geometry helper

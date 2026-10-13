@@ -1,0 +1,5 @@
+# Code owners are requested for review automatically on pull requests that touch matching paths.
+# The last matching pattern wins; add more specific paths below the catch-all when ownership splits.
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @FranklinP44

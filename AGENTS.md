@@ -28,6 +28,10 @@ npm run check:agents-md  # fail if this file no longer matches the code
 
 Before finishing a change, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. CI (`.github/workflows/deploy-pages.yml`) runs the same five checks on every pull request, and also runs `npm run test:durations` and uploads the test and coverage reports as a build artifact between the coverage and build steps.
 
+## Environment variables
+
+The app and every `npm run` command above need no environment variables and no `.env` file. The only consumer is `.github/scripts/publish_confluence.py` (Confluence wiki publishing), whose variables are listed with defaults in `.env.example` and in the README. Copy the template to `.env` to run that script locally; `.env` files are gitignored, so never commit real credentials, and do not add variables with Vite's client prefix unless the page truly needs them, because Vite inlines those into the public bundle.
+
 ## Tests
 
 Unit tests use [Vitest](https://vitest.dev/), configured in `vitest.config.ts`. `npm run test` runs them once; `npm run test:watch` reruns them on change.
@@ -53,6 +57,13 @@ When you rename, add, or remove something this file mentions, update this file i
 ## Pre-commit hook
 
 `.husky/pre-commit` runs `lint-staged` (Oxlint with autofix, then Oxfmt, on staged files; configured under `lint-staged` in `package.json`), then `tsc --noEmit`, then the AGENTS.md check, then the unit tests (`vitest run`, under a second). Fix the reported problems instead of bypassing the hook with `--no-verify`.
+
+## Issues and pull requests
+
+- **Ownership.** `.github/CODEOWNERS` makes @FranklinP44 the owner of every path; GitHub requests a review from the owner automatically on pull requests. Add a more specific line below the catch-all when a path gets a different owner.
+- **Pull requests.** GitHub fills the description from `.github/pull_request_template.md`. Keep its sections: a summary that links the issue, the type of change, the five checks above ticked as run, manual browser checks for page changes, and the checklist. Use a conventional prefix such as `fix:` or `docs:` in the title. To request a Droid code and security review, add the droid-review label; reviews do not run without it.
+- **Dependency updates.** Dependabot (`.github/dependabot.yml`) opens pull requests every week for npm packages and GitHub Actions, and every month for the pip packages in `.github/scripts/requirements.txt`, and waits 7 days after a release (14 for npm majors) before proposing it. Minor and patch bumps of dev dependencies arrive grouped in one pull request, major bumps arrive one per package, Actions updates arrive in one pull request, and `vitest` and `@vitest/coverage-v8` always move together. Majors of `vitest`, `@vitest/coverage-v8`, and `lint-staged` are ignored because their current majors require Node 22, below which this repository still supports Node 20.19; upgrade those by hand only together with the Node floor. Before merging any other major bump, review its changelog and check that `npm view <package>@<version> engines.node` still allows Node 20.19, because CI builds on Node 22 and would not catch it. Merge only when the CI checks pass. Do not hand-edit versions in `package-lock.json`; update dependencies with `npm install` so the lockfile stays consistent.
+- **Issues.** Open issues with the forms in `.github/ISSUE_TEMPLATE/` (bug report, feature request, accessibility issue); each one applies its matching label (bug, enhancement, or accessibility) and asks for steps to reproduce or acceptance criteria.
 
 ## Naming conventions
 
