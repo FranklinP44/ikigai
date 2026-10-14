@@ -22,6 +22,7 @@ npm run test          # run the Vitest unit tests once
 npm run test:watch    # rerun the unit tests on every change
 npm run test:coverage # run the unit tests once with coverage; fails below the thresholds
 npm run test:durations   # summarize how long the last test run took, slowest tests first
+npm run test:e2e      # build, serve on 4173, and run the Playwright end-to-end tests in Chromium
 npm run preview       # serve dist/ at http://localhost:4173
 npm run check:agents-md  # fail if this file no longer matches the code
 ```
@@ -43,6 +44,15 @@ Unit tests use [Vitest](https://vitest.dev/), configured in `vitest.config.ts`. 
 - **Coverage.** `npm run test:coverage` measures coverage of `src/data.ts` and `src/geometry.ts` and fails if statements, branches, functions, or lines drop below the `thresholds` in `vitest.config.ts` (100% each). `src/main.ts` is excluded because it cannot run without a DOM. When you add code to the pure modules, add tests for it; do not lower the thresholds or widen the coverage `exclude` list to get a green run.
 - **Duration.** Tests slower than `slowTestThreshold` (1 second) are highlighted in the output. Every run writes a JSON report that `npm run test:durations` (`scripts/report-test-durations.mjs`) turns into a table of file and test durations; it warns about any test over 1 second or a suite over 10 seconds. In CI the table goes to the job summary. Keep new tests fast; if one must be slow, say why in the test.
 - **Keeping tests current.** When you change zone content, circle geometry, or the SVG markup, run the tests and update the expectations that intentionally changed. Do not delete or skip a failing test to get a green run; `vitest/no-disabled-tests` and `vitest/no-focused-tests` fail lint on skipped and focused tests.
+
+## End-to-end tests
+
+[Playwright](https://playwright.dev/) drives the built page in Chromium. `playwright.config.ts` starts `npm run build` and `vite preview` on port 4173 (or reuses a server already there outside CI), and the tests live in `e2e/diagram.spec.ts`: page load, the Explore pills, hover, and keyboard selection.
+
+- Install the browser once with `npx playwright install chromium`, then run `npm run test:e2e`.
+- Hover is computed from pointer coordinates, so tests convert an SVG point to screen coordinates and move the real mouse there; hovering a `g.zone` element by selector does nothing.
+- `.github/workflows/e2e.yml` runs the suite on every pull request and uploads `playwright-report/` and `test-results/` when it fails.
+- The pre-commit hook does not run these tests, because they need a browser and a build. Run them before pushing changes to the page.
 
 ## Keeping this file current
 

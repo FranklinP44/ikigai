@@ -9,6 +9,10 @@ dist/
 coverage/
 reports/
 
+# Playwright reports and failure traces
+playwright-report/
+test-results/
+
 # Local Confluence dry-run output
 build/
 
