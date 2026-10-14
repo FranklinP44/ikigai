@@ -1,5 +1,9 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
 
 # Test output: coverage reports and Vitest JSON/JUnit results
 coverage/
@@ -7,3 +11,31 @@ reports/
 
 # Local Confluence dry-run output
 build/
+
+# Environment files hold secrets such as the Confluence API token.
+# .env.example is the committed template; copy it to .env and fill it in.
+.env
+.env.*
+!.env.example
+
+# Python (for .github/scripts/publish_confluence.py)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

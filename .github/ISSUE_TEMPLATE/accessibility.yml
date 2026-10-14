@@ -1,0 +1,63 @@
+name: Accessibility issue
+description: Report a barrier for people using a keyboard, screen reader, zoom, or other assistive technology.
+title: "a11y: "
+labels: [accessibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make the diagram usable by everyone. Describe the barrier and how you ran into it.
+
+  - type: textarea
+    id: barrier
+    attributes:
+      label: What is the barrier?
+      description: What could you not do, or what was hard or confusing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the page
+        2. Press Tab until focus reaches the Explore pills
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: technology
+    attributes:
+      label: Assistive technology or setting
+      multiple: true
+      options:
+        - Keyboard only
+        - Screen reader
+        - Screen magnifier or browser zoom
+        - Reduced motion
+        - High contrast or forced colors
+        - Color vision deficiency
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Tool, browser, and OS
+      placeholder: NVDA 2024.3 with Firefox 131 on Windows 11
+    validations:
+      required: true
+
+  - type: input
+    id: guideline
+    attributes:
+      label: Related WCAG success criterion (optional)
+      placeholder: 2.1.1 Keyboard
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would work better?

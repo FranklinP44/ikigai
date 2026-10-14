@@ -1,0 +1,80 @@
+# Dependabot opens pull requests that keep dependencies current. Each pull request runs the same
+# checks as any other (.github/workflows/deploy-pages.yml), so a bump that breaks lint, tests, or the
+# build fails CI instead of reaching main.
+# Reference: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+
+updates:
+  # Build and test tooling in package.json. The page has no runtime dependencies.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Wait before proposing a new release, so broken or compromised versions are usually caught and
+    # pulled upstream first. Majors wait longer.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    # The README supports Node.js 20.19+, but CI builds on Node 22 and npm does not enforce engines,
+    # so CI would not catch a major that drops Node 20. These majors already require Node 22
+    # (vitest 5 needs ^22.12, lint-staged 17 needs >=22.22.1); upgrade them by hand together with
+    # the Node floor. For any other major bump, check `npm view <package>@<version> engines.node`.
+    ignore:
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: lint-staged
+        update-types: ["version-update:semver-major"]
+    groups:
+      # vitest and @vitest/coverage-v8 must stay on the same version, so they always move together.
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
+      # Other minor and patch bumps share one pull request; major bumps get their own so their
+      # breaking changes are reviewed one at a time.
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  # Actions pinned by version tag in .github/workflows/. All updates, majors included, arrive in one
+  # pull request. Majors matter here: the v4 releases of actions/checkout, actions/setup-node, and
+  # actions/upload-artifact run on the deprecated Node 20 Actions runtime, and newer majors move to
+  # Node 24. Factory-AI/droid-action@main tracks a branch, so Dependabot leaves it alone.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Pinned Python packages used by the Confluence publish script.
+  - package-ecosystem: pip
+    directory: /.github/scripts
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      confluence-publish:
+        patterns:
+          - "*"

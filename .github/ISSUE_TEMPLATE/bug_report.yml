@@ -1,0 +1,87 @@
+name: Bug report
+description: Something on the page or in the tooling does not work as expected.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill in as much as you can so it can be reproduced.
+        For barriers that affect people using assistive technology, use the Accessibility issue form instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where does the problem show up?
+      options:
+        - Diagram (circles, regions, hover or tap)
+        - Detail panel or Explore pills
+        - Zone or example text
+        - Layout or styling
+        - Build, tests, lint, or CI
+        - Deployment (GitHub Pages)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug and any error messages, including from the browser console.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps, including which region or pill you interacted with.
+      placeholder: |
+        1. Open the page
+        2. Hover over the region where Love and Good at overlap
+        3. Move the pointer to the center
+        4. See ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, device, and screen size
+      description: For tooling bugs, give your OS, Node.js version, and the command you ran instead.
+      placeholder: Firefox 131 on macOS 14, desktop window about 1400px wide
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input-method
+    attributes:
+      label: Input method
+      multiple: true
+      options:
+        - Mouse
+        - Touch
+        - Keyboard
+        - Not applicable
+
+  - type: input
+    id: where
+    attributes:
+      label: Where did you see it?
+      description: The deployed site, a local dev server (`npm run dev`), a preview build (`npm run preview`), or a CI run (link it).
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or logs
+      description: Drag images in, or paste terminal or CI output. Remove any secrets first.
+      render: text
