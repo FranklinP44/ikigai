@@ -40,3 +40,7 @@ Terms used in the code and in this wiki. Code identifiers point to the file wher
 | Base path | Vite's `base` option. Set to `'./'` in `vite.config.ts` so built asset URLs are relative and work under `/ikigai/`. |
 | Pages artifact | The `dist/` folder uploaded by `actions/upload-pages-artifact` in `.github/workflows/deploy-pages.yml` and then published by `actions/deploy-pages`. See [Deployment](../deployment.md). |
 | Dry run | The pull request mode of the Confluence publishing workflow, which renders the wiki without publishing it. See [Deployment](../deployment.md). |
+| Coverage threshold | The 100% statements, branches, functions, and lines requirement for the pure modules in `vitest.config.ts`. It does not measure browser interaction. |
+| Shuffle seed | The seed printed by Vitest for randomized test order, configured in `vitest.config.ts`. Reuse it to reproduce an order-dependent failure. |
+| Rolling wiki branch | `factory/droid-wiki`, reused by `.github/workflows/droid-wiki-refresh.yml` to carry the latest generated pages in one pull request. See [Wiki refresh](../features/wiki-refresh.md). |
+| Release cooldown | The delay before Dependabot proposes a new release, configured in `.github/dependabot.yml`: 7 days normally, 14 for npm majors. |

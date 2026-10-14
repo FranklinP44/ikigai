@@ -2,7 +2,7 @@
 
 A few things worth knowing about this small codebase.
 
-## The name is three characters
+## Three kanji and one hiragana
 
 生き甲斐 appears twice on the page: above the title (`.kanji` in `index.html`) and under "IKIGAI" in the center of the diagram. The characters roughly mean "life" (生き, iki) and "worth" or "value" (甲斐, gai).
 
@@ -14,9 +14,11 @@ The footnote in `index.html` is upfront about it. The four-circle chart is a Wes
 
 Four circles could form 15 combinations, but the app defines only 13 zones. The top and bottom circles do overlap, and so do the left and right ones, yet neither pair ever forms a region of its own, because every point they share is also inside a neighboring circle. The `ZoneKey` type in `src/data.ts` simply leaves `LP` and `GN` out. The details are in [Zone keys](primitives/zone-keys.md).
 
-## The publishing script outweighs the app
+## A formatting growth spurt
 
-`.github/scripts/publish_confluence.py`, which copies this wiki to Confluence, is 535 lines. The entire app (`index.html` plus everything in `src/`) is 465. Two `devDependencies` (`typescript` and `vite`) also pull 61 packages into `package-lock.json`, 46 of them platform-specific binaries. Nothing from npm ships to the browser.
+`.github/scripts/publish_confluence.py`, which copies this wiki to Confluence, is still 535 physical lines. It once outweighed the 465-line TypeScript app; after the 12 Oct 2026 formatting pass, app source occupies 800 lines without new runtime behavior. That means `index.html`, `src/data.ts`, `src/geometry.ts`, `src/main.ts`, and `src/styles.css`, excluding the 273 lines of adjacent tests.
+
+Counts include blanks and comments, not just executable code. Eight direct dev dependencies now correspond to 179 non-root entries in `package-lock.json`, including optional platform variants; there are still no npm runtime dependencies. See [By the numbers](by-the-numbers.md) for the full scope and snapshot.
 
 ## 39 tiny stories
 

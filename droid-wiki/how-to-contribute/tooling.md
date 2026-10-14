@@ -1,52 +1,67 @@
 # Tooling
 
-The project uses TypeScript, Vite, and npm, with two GitHub Actions workflows: one builds and deploys the site, the other publishes this wiki to Confluence. There is no linter, formatter, or test runner. This page lists what exists and what is safe to use.
+TypeScript and Vite build the dependency-free browser app; Oxlint, Oxfmt, Vitest, and Git hooks validate contributions.
 
-## What exists
+Active contributors: FranklinP44
 
-| Tool | Status |
+## Purpose
+
+Use this reference for local commands and repository automation. Exact dependency versions belong in [Dependencies](../reference/dependencies.md), and workflow execution details in [Deployment](../deployment.md).
+
+## Local tools
+
+| Tool | Role |
 | --- | --- |
-| Language | TypeScript (`typescript ^7.0.2`), strict mode, configured in `tsconfig.json`. Used for type checking only (`noEmit`); Vite does the transpiling. |
-| Build system | Vite (`vite ^8.3.2`), configured in `vite.config.ts` (`base: './'`). Outputs to `dist/`, which is gitignored. |
-| Package manager | npm. `package.json` lists only the two dev dependencies above; `package-lock.json` is committed. `allowScripts` blocks the `fsevents` install script. |
-| Runtime | Node.js 20.19+ or 22.12+ locally (per `README.md`). CI uses Node 22. |
-| Linter / formatter | None configured. Code uses two-space indentation and double quotes in `src/*.ts` (`vite.config.ts` uses single quotes). |
-| Tests | None. `tsc --noEmit` inside `npm run build` is the only automated check. See [Testing](testing.md). |
-| CI / deploy | `.github/workflows/deploy-pages.yml` builds every PR and push, and deploys `main` to GitHub Pages. See [Deployment](../deployment.md). |
-| Wiki publishing | `.github/workflows/publish-wiki-to-confluence.yml` (see below). |
+| npm | Uses committed `package-lock.json`; CI installs with `npm ci`. `package.json` has eight dev dependencies and no runtime dependencies. |
+| TypeScript | Strict checking with no emitted JavaScript; Vite transpiles. `tsconfig.json` also rejects unused locals and parameters. |
+| Vite | Dev server, production bundle, and preview; `vite.config.ts` uses relative asset URLs. |
+| Oxlint | `.oxlintrc.json` enables correctness, suspicious-code, performance, naming, import, TypeScript, and test rules. Warnings fail `npm run lint`. Used instead of typescript-eslint because this project uses TypeScript 7. |
+| Oxfmt | `.oxfmtrc.json` sets a 100-column print width and omits arrow parentheses when possible. Generated output, the lockfile, and `droid-wiki/` are ignored. |
+| Vitest and V8 coverage | Node-based tests, isolated threads, shuffled order, reports, and 100% pure-module coverage. See [Testing](testing.md). |
+| Husky and lint-staged | Installation configures `.husky/pre-commit`; staged code is linted/autofixed and formatted before project type checking, the instructions check, and unit tests. See [Development workflow](development-workflow.md). |
 
-## npm scripts
+Oxlint ignores `dist/`, `coverage/`, `reports/`, `droid-wiki/`, and `.github/`. Its Node script override permits console output in `scripts/`; app console warnings still fail lint.
 
-| Script | Command | Use |
-| --- | --- | --- |
-| `npm run dev` | `vite` | Dev server with reload at http://localhost:5173 |
-| `npm run build` | `tsc --noEmit && vite build` | Type-check, then build to `dist/` |
-| `npm run preview` | `vite preview` | Serve `dist/` at http://localhost:4173 |
+## npm commands
 
-## GitHub Actions workflows
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Vite development server at http://localhost:5173 |
+| `npm run build` | `tsc --noEmit` then Vite build into `dist/` |
+| `npm run preview` | Serve the built bundle at http://localhost:4173 |
+| `npm run lint` / `npm run lint:fix` | Check with warnings denied / apply Oxlint fixes |
+| `npm run format` / `npm run format:check` | Format in place / check without modifying |
+| `npm run test` / `npm run test:watch` | Run Vitest once / watch |
+| `npm run test:coverage` | Run tests with the enforced coverage thresholds |
+| `npm run test:durations` | Summarize the latest JSON test report |
+| `npm run check:agents-md` | Check contributor instructions against the repository |
 
-| Workflow file | Name in Actions | Runs on | Does |
-| --- | --- | --- | --- |
-| `.github/workflows/deploy-pages.yml` | Build and deploy to GitHub Pages | Push to `main`, every PR, manual | `npm ci`, `npm run build`; on non-PR runs, uploads `dist` and deploys to Pages |
-| `.github/workflows/publish-wiki-to-confluence.yml` | Publish wiki to Confluence | Push to `main` or PR touching `droid-wiki/**`, `.github/scripts/**`, or the workflow file; manual | Converts the wiki and publishes it (dry run on PRs) |
+Before finishing, run `check:agents-md`, `lint`, `format:check`, `test:coverage`, and `build` through npm, in that order.
 
-## Wiki publishing
+## Instruction and report scripts
 
-This wiki lives in `droid-wiki/` and is generated by Factory's `/wiki` command. When changes to `droid-wiki/` merge into `main`, the workflow in `.github/workflows/publish-wiki-to-confluence.yml` runs `.github/scripts/publish_confluence.py`. That script reads the page order from `droid-wiki/.wiki-meta.json`, converts each page to Confluence format, renders Mermaid diagrams to PNG with mermaid-cli, and creates or updates the matching Confluence pages under a single root page. On pull requests it runs in dry-run mode as a check, without writing to Confluence. Python dependencies are pinned in `.github/scripts/requirements.txt` (`markdown`, `requests`). Configuration is covered in [Deployment](../deployment.md).
+`scripts/check-agents-md.mjs` checks `AGENTS.md` bidirectionally against non-lifecycle npm scripts and CI npm commands. It also validates inline paths and cited identifiers, CSS names, attributes, and lint rules against source/configuration. Keep the instructions current; do not weaken the checker.
 
-## Optional tools you can run ad hoc
+`scripts/report-test-durations.mjs` reads `reports/test-results.json`, prints suite/file durations and the ten slowest tests, and appends the table to the Actions job summary when configured. Tests over 1 second or a suite over 10 seconds produce warnings, not failing gates.
 
-These are not part of the repository, but they work without adding config:
+## Review and documentation automation
 
-```bash
-npx prettier --check index.html "src/**/*.{ts,css}"
-npx html-validate index.html
-```
+- `.github/workflows/droid-review.yml` runs code and shallow security review only for non-draft PRs labeled `droid-review`. New commits, reopening, and ready-for-review events can rerun it while labeled; unrelated label additions do not.
+- `.github/workflows/droid.yml` responds to `@droid` in the configured issue, PR, and review events. This mention-driven workflow is separate from auto review. Both use `Factory-AI/droid-action@main` and the Factory API secret.
+- `.github/workflows/droid-wiki-refresh.yml` refreshes and uploads the wiki to Factory, then uses a separate job for a rolling PR. Video and GitHub wiki sync are disabled. See [Wiki refresh](../features/wiki-refresh.md).
+- `.github/workflows/publish-wiki-to-confluence.yml` independently converts/publishes merged wiki changes; ordinary relevant PRs get a dry run. Do not confuse Factory upload with Confluence publication.
 
-If any of these become part of the workflow, add them to `devDependencies`, add their config files, and add a note here.
+## Dependency updates
 
-## Related pages
+`.github/dependabot.yml` schedules npm and GitHub Actions weekly on Monday, and the Confluence publisher's pip packages monthly. Releases wait 7 days; npm majors wait 14.
 
-- [Development workflow](development-workflow.md)
-- [Patterns and conventions](patterns-and-conventions.md)
-- [Deployment](../deployment.md)
+- Vitest and `@vitest/*` updates are grouped together so runner and coverage packages stay aligned.
+- Other npm dev-dependency minor/patch updates share a PR; other majors arrive individually.
+- Vitest, `@vitest/*`, and lint-staged major updates are ignored because their next majors require a higher Node floor. Upgrade those manually with the supported Node version.
+- Actions updates share one group, and pip updates share the Confluence group. The branch-tracking Factory action is not managed like version-tagged Actions.
+- For other npm majors, review the changelog and check `npm view <package>@<version> engines.node` still permits Node 20.19; CI runs Node 22 and cannot establish that compatibility.
+- Update dependencies with npm rather than hand-editing `package-lock.json`, and merge only after checks pass.
+
+## Key source files
+
+`package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `.oxlintrc.json`, `.oxfmtrc.json`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, and `.github/dependabot.yml`.

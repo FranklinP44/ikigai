@@ -1,6 +1,6 @@
 # Zone keys
 
-Active contributors: Franklin Pfaller
+Active contributors: FranklinP44
 
 ## Purpose
 
@@ -23,7 +23,7 @@ A zone key is a short string that names a region of the diagram by listing the c
 | `isZoneKey(key)` | function | `src/data.ts` | Type guard: returns `true` (narrowing `string` to `ZoneKey`) when `key` is in `ZONE_KEYS` |
 | `zoneAt(x, y)` | function | `src/geometry.ts` | Builds a key from a point and returns it as `ZoneKey`, or `null` |
 
-`ZONE_KEYS` and the `ZoneKey` union are maintained by hand and list the same 13 strings. The compiler does not check that they match.
+`ZONE_KEYS` and the `ZoneKey` union are maintained by hand and list the same 13 strings. The compiler does not check that they match. The data and geometry tests in `src/data.test.ts` and `src/geometry.test.ts` check runtime key coverage; see [Testing](../how-to-contribute/testing.md).
 
 ## The 13 valid keys
 
@@ -60,7 +60,7 @@ graph TD
     LGP --> LGNP
 ```
 
-## Where keys are used
+## Key source files
 
 | Use | File | How |
 | --- | --- | --- |
