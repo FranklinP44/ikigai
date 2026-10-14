@@ -81,4 +81,4 @@ Pushes to `main` are built and deployed to GitHub Pages by `.github/workflows/de
 - `AGENTS.md`: instructions and naming conventions for contributors and coding agents
 - `.env.example`: template for the environment variables used by the Confluence publish script (the app needs none)
 - `scripts/check-agents-md.mjs`: fails when `AGENTS.md` cites commands, paths or names that no longer exist
-- `droid-wiki/`: generated codebase wiki, published to Confluence by `.github/workflows/publish-wiki-to-confluence.yml`
+- `droid-wiki/`: generated codebase wiki, refreshed on every push to `main` by `.github/workflows/droid-wiki-refresh.yml` (through a rolling pull request from the `factory/droid-wiki` branch, without the video overview) and published to Confluence by `.github/workflows/publish-wiki-to-confluence.yml`
