@@ -1,0 +1,140 @@
+# Refreshes the Factory Wiki on every push to main and keeps the generated droid-wiki/ pages in
+# one rolling pull request from factory/droid-wiki. Based on the template from Factory's
+# install-wiki skill, with these changes:
+# - No video overview. A settings file disables the wiki-video-gen skill and the prompt says
+#   "skip video", and the job fails if droid-wiki/video appears anyway.
+# - paths-ignore on droid-wiki/**: merging the wiki pull request only changes droid-wiki/, so it
+#   must not start another refresh.
+# - Uploads to Factory only, with no GitHub wiki sync.
+# - The wiki pull request is opened with the built-in GITHUB_TOKEN. The repository must allow
+#   GitHub Actions to create pull requests, and that pull request runs no other workflows.
+name: Droid Wiki Refresh
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "droid-wiki/**"
+
+# The job that runs the wiki skill is read-only: the agent reads the whole repository and the
+# pages restored from the unmerged rolling branch, so it must not be able to push or to open pull
+# requests. The wiki-publish job below carries the write permissions.
+permissions:
+  contents: read
+
+# One refresh at a time for the whole repository. Pushes during a run queue only the newest
+# commit instead of starting parallel full generations.
+concurrency:
+  group: droid-wiki-refresh
+  cancel-in-progress: false
+
+env:
+  # Rolling branch that carries the generated wiki from one run to the next.
+  WIKI_BRANCH: factory/droid-wiki
+
+jobs:
+  wiki-refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: the wiki skill diffs against the commit the previous wiki was generated
+          # from to update only the affected pages.
+          fetch-depth: 0
+
+      - name: Restore the previous wiki from the rolling branch
+        # Copies only droid-wiki/ into the working tree, without switching branches. Until the
+        # rolling branch exists, the wiki committed on main is the starting point.
+        run: |
+          if git fetch origin "$WIKI_BRANCH" 2>/dev/null && git checkout FETCH_HEAD -- droid-wiki; then
+            echo "Restored droid-wiki/ from $WIKI_BRANCH; the wiki refresh updates only the pages whose code changed."
+          else
+            echo "No previous wiki on $WIKI_BRANCH; starting from the droid-wiki/ checked out from main."
+          fi
+
+      - name: Install Factory Droid
+        run: curl -fsSL https://app.factory.ai/cli | sh
+
+      - name: Disable the wiki video skill
+        # disabledSkills is a documented Droid setting; the Skill tool refuses disabled skills.
+        run: |
+          mkdir -p ~/.factory
+          settings=~/.factory/settings.json
+          if [ -s "$settings" ]; then
+            jq '.disabledSkills = ((.disabledSkills // []) + ["wiki-video-gen"] | unique)' "$settings" > "$settings.tmp"
+            mv "$settings.tmp" "$settings"
+          else
+            echo '{"disabledSkills":["wiki-video-gen"]}' > "$settings"
+          fi
+          cat "$settings"
+
+      - name: Generate wiki
+        run: droid exec --auto high "/wiki skip video. Upload to Factory only with --upload-to factory; do not sync to the GitHub wiki."
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+
+      - name: Fail if a video was generated
+        run: |
+          if [ -e droid-wiki/video ]; then
+            echo "::error::droid-wiki/video exists although video generation is disabled. Check whether a video was uploaded to Factory."
+            exit 1
+          fi
+
+      - name: Hand the wiki to the publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: droid-wiki
+          # The pages and their metadata only; screenshots stay out of git. The hidden
+          # .wiki-meta.json is what makes the next refresh incremental.
+          path: |
+            droid-wiki
+            !droid-wiki/video/**
+            !droid-wiki/images/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  wiki-publish:
+    needs: wiki-refresh
+    runs-on: ubuntu-latest
+    # The built-in GITHUB_TOKEN is read-only by default. This job pushes the rolling branch and
+    # opens the pull request with it.
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Pick up the generated wiki
+        uses: actions/download-artifact@v8
+        with:
+          name: droid-wiki
+          path: droid-wiki
+
+      - name: Open or update the wiki pull request
+        id: wiki-pr
+        # The wiki is already generated and uploaded by this point, so a rejected push or pull
+        # request must not fail the run; the next step turns it into a run annotation instead.
+        continue-on-error: true
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          # Pull requests opened with GITHUB_TOKEN do not trigger other workflows, so the CI
+          # checks and the Confluence dry run do not run on the wiki pull request.
+          token: ${{ github.token }}
+          branch: ${{ env.WIKI_BRANCH }}
+          base: ${{ github.event.repository.default_branch }}
+          # Git pathspecs; `:!` excludes the same two folders as the upload.
+          add-paths: |
+            droid-wiki/**
+            :!droid-wiki/video/**
+            :!droid-wiki/images/**
+          commit-message: "docs: refresh wiki"
+          title: "docs: refresh wiki"
+          body: "Generated by Droid Wiki Refresh. Review and merge to update droid-wiki/ on the default branch; the next refresh updates this pull request in place. Merging it publishes the changed pages to Confluence."
+          labels: droid-wiki
+
+      - name: Report when the wiki could not be pushed
+        if: steps.wiki-pr.outcome == 'failure'
+        run: |
+          echo "::warning::Could not push droid-wiki/ to $WIKI_BRANCH or open the pull request. The wiki was still generated and uploaded to Factory, but the next run has no previous wiki on $WIKI_BRANCH to start from. Check that Settings > Actions > General > Workflow permissions allows GitHub Actions to create pull requests, and the branch rules on $WIKI_BRANCH."
