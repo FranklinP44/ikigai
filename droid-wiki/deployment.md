@@ -1,6 +1,6 @@
 # Deployment
 
-The site, Factory wiki refresh, and Confluence publisher use independent GitHub Actions workflows.
+The site, Factory wiki refresh, and Confluence publisher use independent GitHub Actions workflows. Optional functional QA tests local branch servers and does not deploy.
 
 Active contributors: FranklinP44
 
@@ -47,7 +47,7 @@ graph LR
    11. `actions/upload-pages-artifact@v5` uploads `dist/` only on non-PR runs.
 2. `deploy` is skipped on PRs and needs successful `build`. It runs `actions/deploy-pages@v5` in the `github-pages` environment, whose URL points to the deployed page.
 
-The five gates are instructions, lint, formatting, coverage, and build. Reporting/upload can run after a preceding failure, but early failures may leave no reports. Browser behavior still needs the [manual checklist](how-to-contribute/testing.md).
+The five gates are instructions, lint, formatting, coverage, and build. Reporting/upload can run after a preceding failure, but early failures may leave no reports. Browser behavior is covered separately by optional functional QA and the [manual checklist](how-to-contribute/testing.md).
 
 **Permissions and concurrency**
 
@@ -67,6 +67,20 @@ The site lives under a subpath, `/ikigai/`, not at the domain root. By default V
 ## Pull requests
 
 On a normal PR, validation and test-report upload run, but the Pages artifact upload and `deploy` job are skipped. A green check covers the five gates, not browser behavior. The rolling wiki PR created with the built-in GitHub token does not trigger this workflow or the Confluence PR dry run.
+
+## Optional functional QA
+
+`.github/workflows/qa.yml` runs a separate informational check, not deployment or a required merge gate unless repository administrators make it required. It responds to PR `labeled`, `synchronize`, `reopened`, and `ready_for_review` events and manual dispatch, ignoring wiki-only PR changes. PRs must be non-draft with `qa`; labeled events must add `qa` itself. Dependabot actors are excluded. Manual runs compare the dispatched ref with the default branch.
+
+Job-level concurrency groups by workflow plus PR number or ref and cancels older eligible runs. Skipped jobs do not cancel active QA. The Ubuntu job has a 25-minute timeout and a 20-minute agent step, `contents: read`, and `pull-requests: write`. It checks out full history, reads `.factory/skills/qa/config.yaml`, installs optional system packages only when requested, sets up Node 22, runs `npm ci`, and installs Factory Droid.
+
+The agent uses the repository's `qa` and `qa-web` skills through droid-control. It starts the checked-out branch on http://localhost:5173; the built-page flow uses `npm run build` and local preview at http://localhost:4173. There is no hosted PR preview, Pages deployment, or production fallback. `FACTORY_API_KEY` is required and is unavailable to fork PRs.
+
+The agent step has `continue-on-error: true` so later, not-cancelled steps can preserve results. `qa-results/` and `qa-output.txt` are uploaded as `qa-results` for 14 days. The workflow builds a job summary and creates or updates one `github-actions[bot]` PR comment marked `<!-- qa-report -->`; dispatched runs do not post a PR comment. Reports are capped at 60,000 bytes for the comment, with a captured-output fallback if no report exists.
+
+The final status step fails when the agent step did not succeed, `qa-results/report.md` is missing/empty, or a results-table row contains the report template's FAIL marker. BLOCKED, FLAKY, and INCONCLUSIVE alone do not fail that check. A green QA workflow can therefore mean no app files matched, not that every browser flow passed.
+
+Video and Compose default to false; text snapshots and downloadable artifacts are the normal evidence. Optional inline uploads need token/environment wiring not currently present. See [Functional QA](features/functional-qa.md) for diff mapping, flow selection, reports, and server cleanup.
 
 ## Redeploying
 
@@ -145,6 +159,7 @@ For local environment loading, follow `README.md` and `.env.example`; the publis
 | File | Role |
 | --- | --- |
 | `.github/workflows/deploy-pages.yml` | Builds on every PR and push; deploys `main` to GitHub Pages |
+| `.github/workflows/qa.yml` | Optional functional QA against local branch servers; no deployment |
 | `vite.config.ts` | Sets `base: './'` so asset URLs work under `/ikigai/` |
 | `package.json` | Defines `npm run build` (`tsc --noEmit && vite build`) used by CI |
 | `package-lock.json` | Pins dependency versions for `npm ci` |

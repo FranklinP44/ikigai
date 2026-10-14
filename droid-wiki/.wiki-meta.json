@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-10-14T08:51:35Z",
-  "commitHash": "ceb6e4e41f3f3de2e11fe9d05d350c1afe0e3019",
+  "generatedAt": "2026-10-14T12:03:05Z",
+  "commitHash": "ee0906ddca3a9a53907c9c26c1670001ebc7dfe1",
   "branch": "main",
-  "pageCount": 32,
+  "pageCount": 33,
   "topLevelSections": [
     "overview",
     "by-the-numbers",
@@ -36,6 +36,7 @@
     "features/zone-exploration.md",
     "features/detail-panel.md",
     "features/wiki-refresh.md",
+    "features/functional-qa.md",
     "systems/index.md",
     "systems/region-rendering.md",
     "systems/visual-design.md",

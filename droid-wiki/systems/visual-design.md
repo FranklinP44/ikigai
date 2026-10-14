@@ -25,6 +25,7 @@ ikigai/
 | `@keyframes fade` | `src/styles.css` | Opacity fade for the center fill, overlays, outlines, and labels |
 | `.circle` | `src/styles.css` | `mix-blend-mode: multiply` and `fill-opacity: 0.82` so overlaps darken like ink |
 | `.card` | `src/styles.css` | Frosted panel: translucent white, `backdrop-filter: blur(8px)`, 22 px radius |
+| `.pill:focus-visible` | `src/styles.css` | Keyboard focus ring: 2 px solid ink outline with a 3 px offset |
 
 ## How it works
 
@@ -64,6 +65,12 @@ The circles use `transform-box: fill-box` and `transform-origin: center` so each
 
 The phone breakpoint enlarges SVG text because the SVG scales down with the viewport, which would otherwise make labels too small to read. The comment above the media query in `src/styles.css` notes this.
 
+### Keyboard focus
+
+Selection and focus are separate states. `.pill.active` in `src/styles.css` gives the selected Explore button a dark ink background and white text. `.pill:focus-visible` adds a 2 px ink outline with a 3 px offset. The offset puts the ring on the light page background, where it stays visible even around the dark active button.
+
+The five native buttons in `index.html` provide keyboard activation; no new event handler is needed in `src/main.ts`. When changing pill styles, check focus on both inactive and active buttons, including after Enter or Space selects a zone. See [Testing](../how-to-contribute/testing.md).
+
 ## Integration points
 
 - SVG circle fills in `index.html` and chip dots built by `render()` in `src/main.ts` reference the circle tokens (via `CIRCLE[k].color` in `src/data.ts`, for example `var(--love)`), so changing a token recolors the diagram and the chips together.
@@ -78,7 +85,7 @@ To retheme, change the `:root` tokens in `src/styles.css`. To adjust motion, edi
 
 | File | Purpose |
 | --- | --- |
-| `src/styles.css` | All tokens, layout, animation, and responsive rules |
+| `src/styles.css` | All tokens, layout, animation, focus, and responsive rules |
 | `index.html` | Font loading, the stylesheet link, and token references in SVG fills |
 | `src/data.ts` | Circle colors in `CIRCLE`, expressed as CSS variables |
 | `src/main.ts` | Inline chip colors from `CIRCLE[k].color` |

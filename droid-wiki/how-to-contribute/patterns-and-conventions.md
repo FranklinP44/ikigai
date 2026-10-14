@@ -59,6 +59,7 @@ Every data record, every `data-zone` attribute, and every generated SVG group is
 - Colors, fonts, and the circle palette are CSS custom properties on `:root` in `src/styles.css`. SVG fills in `index.html` and chip colors in `src/data.ts` (`CIRCLE[k].color`) reference them with `var(--love)` and so on, rather than hard-coding hex values.
 - State is expressed with classes (`.active`, `.swap`, `.hovering`, `.off`), not inline styles. The one exception is the chip color dot, which sets `background` inline from `CIRCLE[k].color`.
 - Animations use CSS keyframes (`pop`, `fade`) and transitions. TypeScript only toggles classes.
+- Keyboard focus uses `.pill:focus-visible` in `src/styles.css`, separate from the selected `.active` class. Keep its 2 px ink outline offset by 3 px so the ring remains visible against the light page background even when the pill has a dark fill.
 
 ## Error handling
 
@@ -80,6 +81,12 @@ Comments are rare and explain why, not what. Examples: in `src/data.ts`, the not
 Place `.test.ts` files next to the covered module, with imported Vitest functions rather than globals. `AGENTS.md` calls for one `describe` block per exported name and sentence-style `it` titles; `.oxlintrc.json` rejects skipped and focused tests.
 
 `vitest.config.ts` uses isolated workers and randomized order. Test the pure modules directly, but read `src/main.ts` and `index.html` through `?raw` imports because the controller touches the DOM at import time. New pure-module branches need tests to preserve the existing 100% thresholds. See [Testing](testing.md) for commands and coverage scope.
+
+## Functional QA
+
+`.factory/skills/qa/SKILL.md` keeps browser QA separate from automated code checks. It maps changed files to apps using `.factory/skills/qa/config.yaml`, excludes unit tests, and selects only relevant flows plus adjacent interactions. Documentation-only, CI-only, and test-only changes receive an INCONCLUSIVE result without app flows.
+
+The web flows in `.factory/skills/qa-web/SKILL.md` use real pointer movements, clicks, and keys through droid-control, not JavaScript calls to application handlers. Read-only DOM queries can inspect state. Expectations come from the branch's `src/data.ts`; evidence waits for the panel swap to finish. Stop servers started by the run, including Vite child processes. Production is never a fallback for branch testing. See [Functional QA](../features/functional-qa.md).
 
 ## Related pages
 

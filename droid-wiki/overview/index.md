@@ -33,6 +33,7 @@ Anyone curious about the Ikigai framework. There is no login, backend, or data c
 - [Glossary](glossary.md): circle letters, zones, pinning, and other terms used in the code.
 - [Deployment](../deployment.md): how pushes to `main` reach GitHub Pages, and how this wiki is published to Confluence.
 - [Wiki refresh](../features/wiki-refresh.md): the Factory-only documentation refresh and rolling pull request, with video disabled.
+- [Functional QA](../features/functional-qa.md): optional, diff-targeted browser checks against branch-local servers.
 - [Zone exploration](../features/zone-exploration.md): the main user-facing interaction.
 - [Region rendering](../systems/region-rendering.md): how the SVG masks carve out each overlap region.
 - [Zone keys](../primitives/zone-keys.md): the letter keys (`L`, `LG`, `LGNP`, ...) that tie everything together.

@@ -95,6 +95,18 @@ gh run view <run-id> -R FranklinP44/ikigai --log-failed
 
 The app writes nothing to the console. Add temporary `console.log` calls in the `pointermove` handler in `src/main.ts` to trace coordinates and keys, and remove them before committing.
 
+## Functional QA failures
+
+`.factory/skills/qa-web/SKILL.md` records browser-testing failure modes. Servers start with `--strictPort`; a conflict on 5173 or 4173 in CI is BLOCKED, not a reason to test production. Stop Vite children as well as their npm wrappers. Wait until `#content` loses `swap` before reading new panel text, and wait about two seconds for circle labels before a load screenshot.
+
+Hover is coordinate-based. Move the real pointer to a point transformed through the SVG screen matrix; dispatching synthetic events on a zone group does not test the intended interaction. Moving outside the circles but still inside the SVG is not `pointerleave`. Use a visible heading or the panel title to leave the diagram.
+
+The workflow in `.github/workflows/qa.yml` checks for `FACTORY_API_KEY` before running Droid. Fork PRs do not receive repository secrets. Inspect the `qa-results` artifact and `qa-output.txt` when no report is produced; successful runs write `qa-results/report.md` and update the PR comment. A failed agent step, a missing report, or a table row marked FAIL makes the job fail. BLOCKED and INCONCLUSIVE rows alone do not, so read the report rather than relying only on the job status.
+
+With the defaults in `.factory/skills/qa/config.yaml`, video and Compose are off. Screenshots remain downloadable artifacts; text snapshots are the inline evidence. Google Fonts network failures and the browser's unsolicited favicon 404 are known environment noise, unlike errors in the page's own code. See [Functional QA](../features/functional-qa.md).
+
 ## Key source files
 
 `src/main.ts`, `src/geometry.ts`, `vite.config.ts`, `vitest.config.ts`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, and `.github/workflows/deploy-pages.yml`.
+
+Browser QA: `.factory/skills/qa/SKILL.md`, `.factory/skills/qa-web/SKILL.md`, `.factory/skills/qa/config.yaml`, and `.github/workflows/qa.yml`.

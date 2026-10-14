@@ -75,6 +75,12 @@ The four listeners at the bottom of `src/main.ts`:
 
 The SVG has `touch-action: manipulation` in `src/styles.css`, which disables double-tap zoom so taps register as clicks right away. A tap fires `click`, which pins the tapped zone.
 
+### Keyboard selection
+
+The five Explore controls are native `<button>` elements in `index.html`. Tab moves focus between them; Enter or Space activates the focused button through the same `click` listener in `src/main.ts`, pinning its zone. Focus alone does not change the selection.
+
+`.pill:focus-visible` in `src/styles.css` draws a 2 px ink outline with a 3 px offset. It stays visible around both an inactive pill and the dark `.pill.active` pill, so visitors can distinguish keyboard focus from the selected zone. See [Visual design](../systems/visual-design.md).
+
 ### Reachability
 
 The five pills cover only the center and the four named pairs. Single-circle zones (`L`, `G`, `N`, `P`) and the three-circle zones (`LGN`, `LNP`, `GNP`, `LGP`) can only be reached through the diagram. The white dots drawn in `index.html` at (400, 291), (509, 400), (400, 509), and (291, 400) sit inside the four three-circle zones to hint where they are.
@@ -97,4 +103,4 @@ To add a new Explore button, add a `<button class="pill" data-zone="KEY">` to `#
 | `src/geometry.ts` | `R`, `CENTERS`, and the `zoneAt()` hit test |
 | `src/data.ts` | `ZoneKey` type, `ORDER`, `ZONE_KEYS`, and the `isZoneKey()` guard |
 | `index.html` | The `svg#ikigai` element and the Explore `.pill` buttons |
-| `src/styles.css` | `.zone` fade, `.pill.active` styling, `svg.hovering` cursor, `touch-action` |
+| `src/styles.css` | `.zone` fade, `.pill.active` selection, `.pill:focus-visible` outline, `svg.hovering` cursor, `touch-action` |

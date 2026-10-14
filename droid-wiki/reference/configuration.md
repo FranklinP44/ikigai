@@ -1,6 +1,6 @@
 # Configuration
 
-The browser app needs no environment variables or runtime configuration. Build and contributor checks use `package.json` and the config files below; Confluence publishing alone uses the tool variables in `.env.example`. App behavior remains controlled by constants in `src/geometry.ts` and `src/main.ts` and custom properties in `src/styles.css`. See [Deployment](../deployment.md) for workflow execution and [Trust boundaries](../security.md) for credentials.
+The browser app needs no environment variables or runtime configuration. Build and contributor checks use `package.json` and the config files below; Confluence publishing uses the tool variables in `.env.example`, while CI agent workflows use a separate Factory secret. App behavior remains controlled by constants in `src/geometry.ts` and `src/main.ts` and custom properties in `src/styles.css`. See [Deployment](../deployment.md) for workflow execution and [Trust boundaries](../security.md) for credentials.
 
 ## `package.json`
 
@@ -66,7 +66,35 @@ Everything else uses Vite defaults: `index.html` at the repo root is the entry, 
 | `package.json` | `lint-staged` runs Oxlint with fixes and denied warnings, then Oxfmt, on staged TS/JS variants. Staged JSON/JSONC/CSS/HTML/Markdown/YAML uses Oxfmt |
 | `.husky/pre-commit` | Runs `lint-staged`, `tsc --noEmit`, the AGENTS checker, then `vitest run`, using `npx --no-install` for package binaries |
 
-The hook is not the full completion gate: before finishing, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. See [Testing](../how-to-contribute/testing.md) for isolation, shuffle-seed reproduction, and the browser-testing gap.
+The hook is not the full completion gate: before finishing, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. See [Testing](../how-to-contribute/testing.md) for isolation, shuffle-seed reproduction, and separate functional browser coverage.
+
+## Functional QA settings
+
+`.factory/skills/qa/config.yaml` is re-read on every QA run. `.factory/skills/qa/.install-progress.yaml` records installation progress, not runtime settings.
+
+| Field | Current value |
+| --- | --- |
+| `project`, `platform` | `Ikigai`, `github` |
+| `default_target` | `local` |
+| `imagemagick`, `video_evidence` | Both `false` |
+| `droid_control.plugin`, `droid_control.compose` | `droid-control@factory-plugins`, `false` |
+| `environments.local.url` | `http://localhost:5173`; no restrictions |
+| `environments.preview.url` | `http://localhost:4173`; no restrictions; local built page, not hosted preview |
+| `environments.production.url` | `https://franklinp44.github.io/ikigai/`; read-only, never PR/CI or a fallback for startup failures |
+| `auth.method`, `auth.provider` | Both `none` |
+| `personas` | One `visitor`, anonymous, `credentials_source: none`, `cannot_do: []`; focus on page load, hover, pinning, pills, keyboard, console errors, built page |
+| `apps.web.path_patterns` | `index.html`, `src/**`, `vite.config.ts`, `tsconfig.json`, `package.json`, `package-lock.json` |
+| `apps.web.exclude_patterns` | `src/**/*.test.ts` |
+| `apps.web.skill`, `apps.web.test_tool` | `qa-web`, `agent-browser` |
+| `apps.web.build_command` | `npm run build` |
+| `feature_flags` | `provider: none`, empty dashboard URL; overrides not applicable |
+| `integrations` | Empty mapping |
+| `cleanup` | `auto_cleanup: false`, `strategy: none`; no app data to remove, stop servers started by the run |
+| `failure_learning` | `suggest_in_report` |
+
+There is no `apps.web.dev_command` or `apps.web.port`. `.factory/skills/qa-web/SKILL.md` defines startup with `npm run dev -- --strictPort`, and built preview with `npm run build` then `npm run preview -- --strictPort`. Generic wiki screenshot discovery requires a dev command and capture tool, so this app entry alone is not eligible. The absent fields do not prevent QA, whose web skill supplies the lifecycle.
+
+`.factory/settings.json` defines `extraKnownMarketplaces.factory-plugins.source` with `source: github` and `repo: Factory-AI/factory-plugins`; `enabledPlugins` maps `droid-control@factory-plugins` to `true`. Capture and Verify run for functional QA; Compose loads only with both video and Compose enabled. See [Functional QA](../features/functional-qa.md).
 
 ## `.gitignore`
 
@@ -75,6 +103,7 @@ The hook is not the full completion gate: before finishing, run `npm run check:a
 | `node_modules/` | Installed packages |
 | `dist/`, `*.tsbuildinfo` | Vite and TypeScript output |
 | `coverage/`, `reports/` | Coverage and Vitest JSON/JUnit reports |
+| `qa-results/` | Functional QA reports, snapshots, screenshots, and optional recordings |
 | `build/` | Local output of a Confluence dry run (`build/confluence/`) |
 | `.env`, `.env.*`, `!.env.example` | Ignores local environment files while retaining the committed template |
 | `__pycache__/`, `*.py[cod]`, `.venv/`, `venv/` | Python caches and virtual environments |
@@ -101,6 +130,12 @@ No npm command needs an `.env` file. `.env.example` is a template, not an automa
 `.github/scripts/publish_confluence.py` defaults preview output to `build/confluence/`. `--dry-run` converts pages and renders diagrams without Confluence writes; if all four required values exist it also makes read-only authentication/space/root-page checks, otherwise it skips those checks. Without that flag, all four values are required for publication. The workflow's `DRY_RUN` controls whether it passes the flag; the script itself does not read `DRY_RUN`.
 
 Actions supplies `GITHUB_ACTIONS` for test reporters and publisher annotation formatting, and `GITHUB_STEP_SUMMARY` for appended test-duration/publishing summaries. The publisher uses `GITHUB_SERVER_URL`, `GITHUB_REPOSITORY`, and `GITHUB_SHA` for source links, preferring the wiki metadata's source commit; locally it falls back to the origin remote/current commit. None is browser runtime configuration. Never put credentials in a `VITE_` variable: Vite exposes those to client code in the public bundle.
+
+### QA workflow environment
+
+`.github/workflows/qa.yml` passes `FACTORY_API_KEY` from repository secrets only to the agent step, along with `CI: true`, `BASE_REF` (PR base or default branch), and normalized `VIDEO_EVIDENCE`/`COMPOSE` outputs read from the YAML config. The secret is for the CI agent, not the app; fork PRs do not receive it. No npm command gains an environment requirement from QA.
+
+The skill documents optional `QA_EVIDENCE_TOKEN` and `REPO_ID` for inline attachments, but neither is currently wired into the Run QA environment. Without an upload token, evidence stays in text and workflow artifacts. Enabling video does not itself supply credentials. The report/comment steps use workflow-provided run/artifact URLs and `github.token` for PR comments, not app authentication.
 
 ## Workflow settings
 
@@ -129,6 +164,9 @@ Additional automation settings:
 | `.github/workflows/droid-wiki-refresh.yml` | Generation has `contents: read` and step-scoped `FACTORY_API_KEY` secret; separate publish job has `contents: write` and `pull-requests: write`. Factory-only upload, disabled video skill and post-generation video guard; one-day artifact handoff |
 | `.github/workflows/droid-review.yml` | Non-draft PR with `droid-review` label; only that label triggers a labeled event. Code and shallow security review via `Factory-AI/droid-action@main`, with `FACTORY_API_KEY` secret and `allowed_bots: factory-droid` |
 | `.github/workflows/droid.yml` | Event-body/title `@droid` gate; `FACTORY_API_KEY` secret; repository contents read, issue/PR comments write |
+| `.github/workflows/qa.yml` | PR `labeled`, `synchronize`, `reopened`, `ready_for_review` events, ignoring wiki-only changes; non-draft plus `qa` label, only `qa` label additions, no Dependabot actor; manual dispatch |
+| `.github/workflows/qa.yml` | Job permissions `contents: read`, `pull-requests: write`; Node 22, full history; workflow/PR-or-ref concurrency with cancellation at job level |
+| `.github/workflows/qa.yml` | Job timeout 25 minutes, agent timeout 20 minutes; required `FACTORY_API_KEY`; `qa-results` artifact retained 14 days; optional/informational, no deployment |
 
 The rolling wiki PR uses the built-in GitHub token, so other workflows do not automatically run on it. Review the diff before merging. See [Wiki refresh](../features/wiki-refresh.md) for its lifecycle and [Dependencies](dependencies.md) for action versions and Dependabot policy.
 

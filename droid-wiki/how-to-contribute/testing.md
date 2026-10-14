@@ -1,6 +1,6 @@
 # Testing
 
-Vitest checks pure logic and markup consistency; manual browser checks cover interactions and visual behavior.
+Vitest checks pure logic and markup consistency; functional QA and manual browser checks cover interactions and visual behavior.
 
 Active contributors: FranklinP44
 
@@ -72,6 +72,8 @@ Run this after any change to `src/main.ts`, `src/styles.css` or `index.html`. It
 
 - [ ] Each of the five pills switches the zone and shows the active (dark) style.
 - [ ] The pill for the pinned zone stays active; hovering a different zone deactivates it until the pointer leaves.
+- [ ] Tab through the five pills. Focus alone leaves the selected zone unchanged; Enter and Space select and pin the focused zone.
+- [ ] The focused pill has a visible ring before and after activation, including the initially active Ikigai pill. `src/styles.css` defines a 2 px ink outline with a 3 px offset on `.pill:focus-visible`; check it against the dark active fill and the light inactive fill.
 
 ### Responsive
 
@@ -87,8 +89,42 @@ Run this after any change to `src/main.ts`, `src/styles.css` or `index.html`. It
 
 ## Browser tests
 
-Interaction is still checked by hand; no browser test runner is installed. The 100% threshold describes the pure modules, not browser or accessibility coverage. See [Cleanup opportunities](../cleanup-opportunities.md).
+`.factory/skills/qa/SKILL.md` orchestrates functional checks through droid-control, whose web route uses agent-browser. This is agent-driven browser testing, not a new npm test runner or DOM environment for Vitest. The 100% threshold still describes the pure modules, not browser or accessibility coverage. Keep the manual checklist above for visual judgment and cross-browser checks. See [Functional QA](../features/functional-qa.md) for the full execution model.
+
+### Requesting functional QA
+
+- **Locally:** ask Droid in this repository to run the `qa` skill against http://localhost:5173. It starts and stops a server from the working tree, including any Vite child process it starts.
+- **On a PR:** add `qa` to a non-draft PR. `.github/workflows/qa.yml` reruns on new commits while labeled, with eligible reopen/ready-for-review events too. It needs the `FACTORY_API_KEY` repository secret and is optional, not a required merge check.
+- **Manually in Actions:** dispatch the QA workflow to compare that ref with the repository default branch.
+
+`.factory/skills/qa/config.yaml` defaults to local Vite at http://localhost:5173; its preview is the locally served build at http://localhost:4173, not a hosted branch deployment. Never test production for a PR or CI run. If the local server fails, report BLOCKED instead of falling back to Pages.
+
+### Flow selection
+
+`.factory/skills/qa-web/SKILL.md` defines a menu, not a mandatory full-suite checklist:
+
+| Flow | What it verifies |
+| --- | --- |
+| 1 | Page load, initial center content, 13 overlays, active pill |
+| 2 | Hovered content, chips, examples, active overlays, outside-circle boundary |
+| 3 | Click-to-pin, temporary hover, restore on leave, outside clicks |
+| 4 | Five Explore pills and persistent selection |
+| 5 | Tab order, visible focus, Enter/Space activation |
+| 6 | Console errors, locally built page, relative assets, one hover and pill |
+| 7 | Narrow layout and taps when styling/layout changes |
+
+The orchestrator maps the diff to app files, excludes `src/**/*.test.ts`, and runs only relevant and adjacent flows plus change-specific tests. At least half the tests must directly verify the change; include a related negative boundary/error path. A docs-only, CI-only, or test-only diff with no matched app files produces one INCONCLUSIVE row and runs no app pre-flight or flows. Build/package configuration does match the web app; "config-only" does not mean all configuration files are excluded.
+
+Use the anonymous `visitor` persona. Interact with real pointer movement, clicks, and keys, not calls to handlers or synthetic JavaScript events. Read expected content from the branch's `src/data.ts`; allow the panel swap to complete before checking it. There are no login or permission tests.
+
+### Reports and limits
+
+The skill uses `.factory/skills/qa/REPORT-TEMPLATE.md` and writes `qa-results/report.md`. Results are PASS, FAIL, BLOCKED, FLAKY, or INCONCLUSIVE; incomplete flows need a reason and remediation, not silent omission. Evidence is primarily text snapshots in one collapsed block. Screenshots and logs are downloadable CI artifacts kept for 14 days, and repeated PR runs update one report comment.
+
+Video and Compose both default to false in `.factory/skills/qa/config.yaml`. Optional video upload needs additional token wiring not present in the current workflow. With `failure_learning: suggest_in_report`, new environment insights are suggestions only, not automatic skill edits.
+
+The workflow fails on agent-step failure, a missing/empty report, or a FAIL table row. BLOCKED, FLAKY, and INCONCLUSIVE alone do not fail its final status check, so inspect the report rather than treating green as full browser coverage. QA does not run or report static gates; flow 6 builds only to serve and inspect the bundled page. The five required contribution checks remain unchanged.
 
 ## Key source files
 
-`src/data.test.ts`, `src/geometry.test.ts`, `src/index-html.test.ts`, `vitest.config.ts`, `.oxlintrc.json`, `scripts/report-test-durations.mjs`, and `.github/workflows/deploy-pages.yml`.
+`src/data.test.ts`, `src/geometry.test.ts`, `src/index-html.test.ts`, `vitest.config.ts`, `.oxlintrc.json`, `scripts/report-test-durations.mjs`, `.github/workflows/deploy-pages.yml`, `.factory/skills/qa/SKILL.md`, `.factory/skills/qa/config.yaml`, `.factory/skills/qa-web/SKILL.md`, and `.github/workflows/qa.yml`.

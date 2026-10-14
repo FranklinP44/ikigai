@@ -1,6 +1,6 @@
 # Lore
 
-The repository is young: 28 commits reachable from `origin/main` between 25 Sep and 14 Oct 2026. It grew from a three-file static page into a TypeScript/Vite app with contributor checks, tests and an automatic wiki lifecycle. The runtime model remains the same; [By the numbers](by-the-numbers.md) separates app size from tooling growth.
+The repository is young: 32 commits reachable from `main` at `120cd5f` between 25 Sep and 14 Oct 2026. It grew from a three-file static page into a TypeScript/Vite app with contributor checks, unit tests, an automatic wiki lifecycle and optional functional QA. This history was refreshed on 14 Oct 2026. The runtime model remains the same; [By the numbers](by-the-numbers.md) separates app size from tooling growth.
 
 ## Eras
 
@@ -35,7 +35,7 @@ The larger contributor-readiness pass began on **12 Oct 2026** with `8221fa6`, m
 
 ### Tests and hygiene (13–14 Oct 2026)
 
-On **13 Oct 2026**, `657aa65` introduced 93 Vitest cases in `src/data.test.ts`, `src/geometry.test.ts`, and `src/index-html.test.ts`, plus `vitest.config.ts` and `scripts/report-test-durations.mjs`. Isolated, shuffled tests, 100% coverage thresholds for the pure modules, timing reports and CI artifacts arrived together. `56df8d7` corrected `AGENTS.md`'s CI step order before PR #7 merged as `13d3a05` that day. The DOM controller still requires manual browser checks; see [Testing](how-to-contribute/testing.md).
+On **13 Oct 2026**, `657aa65` introduced 93 Vitest cases in `src/data.test.ts`, `src/geometry.test.ts`, and `src/index-html.test.ts`, plus `vitest.config.ts` and `scripts/report-test-durations.mjs`. Isolated, shuffled tests, 100% coverage thresholds for the pure modules, timing reports and CI artifacts arrived together. `56df8d7` corrected `AGENTS.md`'s CI step order before PR #7 merged as `13d3a05` that day. The DOM controller remained outside the Node-only unit suite; optional browser-driven QA arrived on **14 Oct 2026**, described below. See [Testing](how-to-contribute/testing.md).
 
 Also on **13 Oct**, `cafa4bc` added `.env.example`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue forms under `.github/ISSUE_TEMPLATE/`, `.github/dependabot.yml`, and broader `.gitignore` rules. The commit describes generated readiness fixes reviewed by hand. PR #9 merged it on **14 Oct** (`0681ec5`). Ownership remains a single catch-all maintainer in `.github/CODEOWNERS`, not a new team structure. Node 20.19 compatibility shaped dependency-major exclusions. On **14 Oct**, PRs #10 and #11 merged the first grouped Vite patch and Actions updates (`15a5f0f`, `d2e266f`; merges `f663073`, `b652913`).
 
@@ -44,6 +44,18 @@ Also on **13 Oct**, `cafa4bc` added `.env.example`, `.github/CODEOWNERS`, `.gith
 Commit `c5062de`, merged as PR #12 (`ceb6e4e`) on **14 Oct 2026**, added `.github/workflows/droid-wiki-refresh.yml`. Pushes to `main` now refresh the wiki and upload it **to Factory only**, then open or update one rolling PR from `factory/droid-wiki`. Wiki-only pushes are ignored to avoid a refresh loop; the previous rolling wiki is restored to support incremental updates.
 
 The generation job is read-only, and a separate job owns branch/PR writes. Video generation is disabled and checked explicitly. Using the built-in GitHub token avoids another PAT, but also means the generated PR does not trigger normal CI or the Confluence dry run. A human must review it before merging. Confluence publication remains a separate existing workflow after merge, not an output destination of the refresh command. See [Wiki refresh](features/wiki-refresh.md) and [Deployment](deployment.md).
+
+On **14 Oct 2026**, `699780f` refreshed the documentation, including the wiki-refresh feature page and security overview, and PR #13 merged it as `19d7ed5`. That commit changed wiki files only.
+
+### Optional functional QA (14 Oct 2026)
+
+On **14 Oct 2026**, `258a648` added a developer subsystem rather than an application feature: `.factory/skills/qa/` for diff selection, settings and report structure; `.factory/skills/qa-web/SKILL.md` for browser flows; `.factory/settings.json` to enable `droid-control@factory-plugins`; and `.github/workflows/qa.yml` for on-demand runs. It also added `qa-results/` to `.gitignore` and documented QA in `AGENTS.md`. PR #14 merged it as `120cd5f` that day. No app source, existing tests or npm dependencies changed, and no legacy files were removed.
+
+The workflow runs for a non-draft pull request carrying the `qa` label, re-runs on new commits while that label remains, and also supports manual dispatch; Dependabot-triggered runs are excluded. It needs the `FACTORY_API_KEY` repository secret and is not a required check. The skill chooses flows from the app diff and reports non-app-only changes as inconclusive rather than running unrelated flows. Browser interactions use the anonymous visitor persona through droid-control's agent-browser route.
+
+Runs target the branch's local Vite server at port 5173, plus a local built preview at port 4173 when relevant. Production is forbidden for PR and CI testing, including as a fallback. Reports update one PR comment and retain screenshots/logs as artifacts. Video evidence and Compose are both disabled in the checked-in configuration.
+
+The commit message records generation with the install-qa skill followed by manual review: preserving Droid failures through `tee`, escaping bot mentions in report comments, and restricting the report failure-marker match to table rows. It also records local-smoke-run fixes for orphaned Vite processes, the missing favicon and a scrolled-out heading. See [Functional QA](features/functional-qa.md).
 
 ## Longest-standing features
 
@@ -79,6 +91,7 @@ The pieces most likely to survive future changes are the ones the rest of the co
 | 8 Oct 2026 | 5 | 465 | TypeScript and Vite migration and Pages workflow merged (PR #2) |
 | 12 Oct 2026 (merged 13 Oct) | 5 | 800 | Formatting and contributor-tooling pass (PR #6), no runtime feature growth |
 | 14 Oct 2026 | 5 | 800 | Tests, hygiene and automatic wiki refresh merged (PRs #7–#12) |
+| 14 Oct 2026 | 5 | 800 | Wiki refresh and optional functional QA merged (PRs #13–#14); app unchanged |
 
 App lines are physical lines including blanks/comments: `index.html` plus runtime scripts and stylesheet, excluding tests. Tooling, config, and the wiki are separate in [By the numbers](by-the-numbers.md). Dates above come from git author dates; merge dates are noted where different. The growth rows describe the app state at each milestone, not a uniform first-parent calendar series.
 
