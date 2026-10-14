@@ -1,6 +1,6 @@
 # Deployment
 
-The site, Factory wiki refresh, and Confluence publisher use independent GitHub Actions workflows. Optional functional QA tests local branch servers and does not deploy.
+The site, fixed browser tests, Factory wiki refresh, and Confluence publisher use independent GitHub Actions workflows. Browser tests and optional functional QA use local branch servers and do not deploy.
 
 Active contributors: FranklinP44
 
@@ -47,7 +47,7 @@ graph LR
    11. `actions/upload-pages-artifact@v5` uploads `dist/` only on non-PR runs.
 2. `deploy` is skipped on PRs and needs successful `build`. It runs `actions/deploy-pages@v5` in the `github-pages` environment, whose URL points to the deployed page.
 
-The five gates are instructions, lint, formatting, coverage, and build. Reporting/upload can run after a preceding failure, but early failures may leave no reports. Browser behavior is covered separately by optional functional QA and the [manual checklist](how-to-contribute/testing.md).
+The five gates are instructions, lint, formatting, coverage, and build. Reporting/upload can run after a preceding failure, but early failures may leave no reports. Browser behavior is checked separately by the fixed Playwright suite, optional functional QA, and the [manual checklist](how-to-contribute/testing.md).
 
 **Permissions and concurrency**
 
@@ -66,21 +66,31 @@ The site lives under a subpath, `/ikigai/`, not at the domain root. By default V
 
 ## Pull requests
 
-On a normal PR, validation and test-report upload run, but the Pages artifact upload and `deploy` job are skipped. A green check covers the five gates, not browser behavior. The rolling wiki PR created with the built-in GitHub token does not trigger this workflow or the Confluence PR dry run.
+On a normal PR, validation and test-report upload run, but the Pages artifact upload and `deploy` job are skipped. A green Pages check covers the five gates, not browser behavior; inspect the separate E2E result too. The rolling wiki PR created with the built-in GitHub token does not trigger this workflow or the Confluence PR dry run.
+
+## Fixed browser tests
+
+`.github/workflows/e2e.yml`, named **E2E**, runs on `pull_request` except changes only under `droid-wiki/**`, and on `workflow_dispatch`. It needs no label, secrets, or Factory credits. Its workflow token has only `contents: read`. Workflow/PR-number-or-ref concurrency cancels older in-progress runs.
+
+The Ubuntu job has a 15-minute timeout and runs checkout, Node 22 setup with npm caching, `npm ci`, `npx playwright install --with-deps chromium`, then `npm run test:e2e`. `playwright.config.ts` builds and starts a strict-port preview on 4173, with no server reuse in CI. It uses one retry, first-retry traces, and GitHub plus HTML reporters.
+
+On failure, `actions/upload-artifact@v7` uploads available `playwright-report/` and `test-results/` as `playwright-report`, retained for 14 days. This workflow neither deploys nor posts a QA report comment. The Pages workflow has no dependency on it; source configuration does not establish branch-protection requirements. See [Testing](how-to-contribute/testing.md#playwright-end-to-end-tests) for the eight cases and coverage gaps.
 
 ## Optional functional QA
 
 `.github/workflows/qa.yml` runs a separate informational check, not deployment or a required merge gate unless repository administrators make it required. It responds to PR `labeled`, `synchronize`, `reopened`, and `ready_for_review` events and manual dispatch, ignoring wiki-only PR changes. PRs must be non-draft with `qa`; labeled events must add `qa` itself. Dependabot actors are excluded. Manual runs compare the dispatched ref with the default branch.
 
-Job-level concurrency groups by workflow plus PR number or ref and cancels older eligible runs. Skipped jobs do not cancel active QA. The Ubuntu job has a 25-minute timeout and a 20-minute agent step, `contents: read`, and `pull-requests: write`. It checks out full history, reads `.factory/skills/qa/config.yaml`, installs optional system packages only when requested, sets up Node 22, runs `npm ci`, and installs Factory Droid.
+Job-level concurrency groups by workflow plus PR number or ref and cancels older eligible runs. Skipped jobs do not cancel active QA. The Ubuntu job has a 25-minute timeout and a 20-minute agent step, `contents: read`, and `pull-requests: write`. It checks out full history, reads `.factory/skills/qa/config.yaml`, optionally installs ImageMagick, sets up Node 24, runs `npm ci`, and installs Factory Droid. The app's Node support and Node 22 build/E2E jobs are unchanged.
+
+Before the model run, `scripts/provision-qa-browser.sh` explicitly activates the project droid-control plugin, installs agent-browser 0.37.1 and managed Chrome with dependencies, and checks an owned `about:blank` session using isolated configuration. It exports absolute driver/config/browser paths. `scripts/run-qa.sh` validates and preserves them, clears attachment overrides, owns a separate session, and closes only that session on exit. Browser provisioning is not app validation.
 
 The agent uses the repository's `qa` and `qa-web` skills through droid-control. It starts the checked-out branch on http://localhost:5173; the built-page flow uses `npm run build` and local preview at http://localhost:4173. There is no hosted PR preview, Pages deployment, or production fallback. `FACTORY_API_KEY` is required and is unavailable to fork PRs.
 
-The agent step has `continue-on-error: true` so later, not-cancelled steps can preserve results. `qa-results/` and `qa-output.txt` are uploaded as `qa-results` for 14 days. The workflow builds a job summary and creates or updates one `github-actions[bot]` PR comment marked `<!-- qa-report -->`; dispatched runs do not post a PR comment. Reports are capped at 60,000 bytes for the comment, with a captured-output fallback if no report exists.
+The agent step has `continue-on-error: true` so later, not-cancelled steps can preserve results. A separate report-gate step runs `scripts/check-qa-report.mjs` with the agent outcome and also continues on error. `qa-results/`, `qa-output.txt`, and available provisioning plugin/version/browser-URL logs are uploaded as `qa-results` for 14 days. The workflow builds a job summary and creates or updates one `github-actions[bot]` PR comment marked `<!-- qa-report -->`; dispatched runs do not post a PR comment. Reports are capped at 60,000 bytes for the comment, with a captured-output fallback if no report exists.
 
-The final status step fails when the agent step did not succeed, `qa-results/report.md` is missing/empty, or a results-table row contains the report template's FAIL marker. BLOCKED, FLAKY, and INCONCLUSIVE alone do not fail that check. A green QA workflow can therefore mean no app files matched, not that every browser flow passed.
+After publication, the final status step fails if the agent or report gate did not succeed. `scripts/check-qa-report.mjs` rejects missing or malformed reports, placeholders, invalid row IDs/statuses, and actual FAIL or BLOCKED Result cells in the main table. Legends, Notes, and evidence do not determine the outcome. FLAKY alone is accepted; INCONCLUSIVE is accepted only as the exact single no-app-diff row. A green QA workflow can therefore mean no browser validation happened, not that every flow passed. QA-tooling-only diffs need separately authorized targeted browser QA before claiming app validation.
 
-Video and Compose default to false; text snapshots and downloadable artifacts are the normal evidence. Optional inline uploads need token/environment wiring not currently present. See [Functional QA](features/functional-qa.md) for diff mapping, flow selection, reports, and server cleanup.
+Video and Compose default to false, and the workflow and `scripts/run-qa.sh` reject enabling them in CI. Evidence is text snapshots and downloadable screenshots/logs, not recordings or rendered video. See [Functional QA](features/functional-qa.md) for diff mapping, flow selection, reports, and server cleanup.
 
 ## Redeploying
 
@@ -159,7 +169,11 @@ For local environment loading, follow `README.md` and `.env.example`; the publis
 | File | Role |
 | --- | --- |
 | `.github/workflows/deploy-pages.yml` | Builds on every PR and push; deploys `main` to GitHub Pages |
+| `.github/workflows/e2e.yml` | Independent fixed Chromium tests on PRs and manual dispatch; failure artifacts |
+| `playwright.config.ts`, `e2e/diagram.spec.ts` | Built-preview runner settings and browser assertions |
 | `.github/workflows/qa.yml` | Optional functional QA against local branch servers; no deployment |
+| `scripts/provision-qa-browser.sh`, `scripts/run-qa.sh` | Pinned driver/managed Chrome setup and isolated model-run session |
+| `scripts/check-qa-report.mjs`, `scripts/check-qa-report.test.ts` | Strict report/process gate and unit/CLI regressions |
 | `vite.config.ts` | Sets `base: './'` so asset URLs work under `/ikigai/` |
 | `package.json` | Defines `npm run build` (`tsc --noEmit && vite build`) used by CI |
 | `package-lock.json` | Pins dependency versions for `npm ci` |

@@ -82,11 +82,19 @@ Place `.test.ts` files next to the covered module, with imported Vitest function
 
 `vitest.config.ts` uses isolated workers and randomized order. Test the pure modules directly, but read `src/main.ts` and `index.html` through `?raw` imports because the controller touches the DOM at import time. New pure-module branches need tests to preserve the existing 100% thresholds. See [Testing](testing.md) for commands and coverage scope.
 
+`vitest.config.ts` collects `.test.ts` files under `src/` and `scripts/`. QA report-gate tests in `scripts/check-qa-report.test.ts` import the pure evaluator in `scripts/check-qa-report.mjs` and test its CLI status with temporary report files. These regressions run with ordinary unit checks and the pre-commit hook, but are outside the app-module coverage scope.
+
+Browser tests live separately in `e2e/diagram.spec.ts` and import `test` and `expect` from Playwright. The Vitest filename rule in `.oxlintrc.json` applies under `src/` and to `.test.ts` files under `scripts/`; it does not reject the browser suite's `.spec.ts` name. `playwright.config.ts` selects Chromium and the local production build.
+
+Hover assertions need pointer coordinates, not a selector-only hover over `g.zone`. The `moveToSvgPoint()` helper in `e2e/diagram.spec.ts` scrolls the SVG into view, maps a probe through `getScreenCTM()`, and moves the real mouse. Keep coordinate probes consistent with `src/geometry.ts`. Playwright's retrying assertions wait for the panel update rather than calling `setZone()` directly.
+
 ## Functional QA
 
-`.factory/skills/qa/SKILL.md` keeps browser QA separate from automated code checks. It maps changed files to apps using `.factory/skills/qa/config.yaml`, excludes unit tests, and selects only relevant flows plus adjacent interactions. Documentation-only, CI-only, and test-only changes receive an INCONCLUSIVE result without app flows.
+`.factory/skills/qa/SKILL.md` keeps browser QA separate from automated code checks. It maps changed files to apps using `.factory/skills/qa/config.yaml`, excludes unit tests, and selects only relevant flows plus adjacent interactions. Documentation-only, CI-only, and test-only changes receive exactly one documented INCONCLUSIVE row without app flows. QA-tooling-only changes need separately authorized targeted browser QA before anyone claims app validation.
 
 The web flows in `.factory/skills/qa-web/SKILL.md` use real pointer movements, clicks, and keys through droid-control, not JavaScript calls to application handlers. Read-only DOM queries can inspect state. Expectations come from the branch's `src/data.ts`; evidence waits for the panel swap to finish. Stop servers started by the run, including Vite child processes. Production is never a fallback for branch testing. See [Functional QA](../features/functional-qa.md).
+
+In CI, `scripts/run-qa.sh` requires the absolute driver, config, and managed Chrome paths exported by `scripts/provision-qa-browser.sh`. Keep its owned browser session; do not attach to another browser, discover user configuration, or install replacement tools during QA. `scripts/check-qa-report.mjs` reads Result cells from the main contiguous six-column table, not legends or Notes. FAIL and BLOCKED fail the job; CI video and Compose must remain disabled.
 
 ## Related pages
 

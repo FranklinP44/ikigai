@@ -1,6 +1,6 @@
 # Dependencies
 
-The app declares no npm runtime dependencies. Eight dev dependencies support building, testing and contributor checks; Google Fonts and browser features support the page. GitHub Actions and Python packages belong to repository automation, not the deployed app. See [Configuration](configuration.md) for their settings.
+The app declares no npm runtime dependencies. Nine dev dependencies support building, testing and contributor checks; Google Fonts and browser features support the page. GitHub Actions and Python packages belong to repository automation, not the deployed app. See [Configuration](configuration.md) for their settings.
 
 ## npm dev dependencies
 
@@ -8,6 +8,7 @@ Declared in `package.json` and resolved in `package-lock.json` (lockfile version
 
 | Package | Range | Locked | Used for |
 | --- | --- | --- | --- |
+| `@playwright/test` | `^1.64.1` | 1.64.1 | Fixed browser-test runner configured by `playwright.config.ts` |
 | `@vitest/coverage-v8` | `^4.1.11` | 4.1.11 | V8 coverage provider for Vitest |
 | `husky` | `^9.1.7` | 9.1.7 | Git hook installation through `prepare` |
 | `lint-staged` | `^16.4.0` | 16.4.0 | Staged-file lint/format commands |
@@ -17,7 +18,9 @@ Declared in `package.json` and resolved in `package-lock.json` (lockfile version
 | `vite` | `^8.3.3` | 8.3.3 | Dev server, production bundle, preview server |
 | `vitest` | `^4.1.11` | 4.1.11 | Unit tests, JSON/JUnit results and watch mode |
 
-Vite and its Rolldown bundler declare Node `^20.19.0 || >=22.12.0` in `package-lock.json`, matching `README.md`. `package.json` has no project `engines` field. Pages CI uses Node 22, while the Confluence diagram-rendering workflow uses Node 20. Platform-specific optional binaries are represented in the lockfile; npm selects those for the host. `package.json` blocks the optional macOS `fsevents` install script via `allowScripts`.
+`package-lock.json` contains 183 package entries including the root, or 182 non-root entries, not 182 direct dependencies. `@playwright/test` depends on `playwright`, which depends on `playwright-core`; all three lock to 1.64.1 and declare Node `>=20`. Chromium itself is installed separately with `npx playwright install chromium`, or `--with-deps chromium` in `.github/workflows/e2e.yml`; it is not a deployed app dependency.
+
+Vite and its Rolldown bundler declare Node `^20.19.0 || >=22.12.0` in `package-lock.json`, matching `README.md`. `package.json` has no project `engines` field. Pages/E2E CI use Node 22, Confluence diagram rendering uses Node 20, and only QA uses Node 24 in `.github/workflows/qa.yml`. That QA tool version does not change app support. Platform-specific optional binaries are represented in the lockfile; npm selects those for the host. `package.json` blocks the optional macOS `fsevents` install script via `allowScripts`.
 
 ## Dependabot policy
 
@@ -47,12 +50,12 @@ npm has an open-PR limit of five. Automated major updates are ignored for `vites
 
 | Action | Version | Workflow |
 | --- | --- | --- |
-| `actions/checkout` | `v7` | All six files in `.github/workflows/` |
-| `actions/setup-node` | `v7` | `.github/workflows/deploy-pages.yml` and `.github/workflows/qa.yml` (Node 22), `.github/workflows/publish-wiki-to-confluence.yml` (Node 20) |
+| `actions/checkout` | `v7` | All seven files in `.github/workflows/`, including `.github/workflows/e2e.yml` |
+| `actions/setup-node` | `v7` | `.github/workflows/deploy-pages.yml` and `.github/workflows/e2e.yml` (Node 22), `.github/workflows/qa.yml` (Node 24), `.github/workflows/publish-wiki-to-confluence.yml` (Node 20) |
 | `actions/upload-pages-artifact` | `v5` | `.github/workflows/deploy-pages.yml` |
 | `actions/deploy-pages` | `v5` | `.github/workflows/deploy-pages.yml` |
 | `actions/setup-python` | `v7` | `.github/workflows/publish-wiki-to-confluence.yml` (Python 3.12) |
-| `actions/upload-artifact` | `v7` | `.github/workflows/deploy-pages.yml`, `.github/workflows/publish-wiki-to-confluence.yml`, `.github/workflows/droid-wiki-refresh.yml`, `.github/workflows/qa.yml` |
+| `actions/upload-artifact` | `v7` | `.github/workflows/deploy-pages.yml`, `.github/workflows/e2e.yml`, `.github/workflows/publish-wiki-to-confluence.yml`, `.github/workflows/droid-wiki-refresh.yml`, `.github/workflows/qa.yml` |
 | `actions/download-artifact` | `v8` | `.github/workflows/droid-wiki-refresh.yml` |
 | `peter-evans/create-pull-request` | `5f6978faf089d4d20b00c7766989d076bb2fc7f1` (v8.1.1) | `.github/workflows/droid-wiki-refresh.yml` |
 | `Factory-AI/droid-action` | `main` | `.github/workflows/droid.yml`, `.github/workflows/droid-review.yml` |
@@ -61,11 +64,13 @@ The Confluence workflow also installs `@mermaid-js/mermaid-cli@11` globally; thi
 
 ## Functional QA tools
 
-`.factory/settings.json` registers the GitHub marketplace `Factory-AI/factory-plugins` as `factory-plugins` and enables `droid-control@factory-plugins`. Droid discovers/installs it at project scope; QA checks activation with `droid plugin list --scope project`. The QA skills route browser interaction through droid-control's browser-use driver, agent-browser, plus Capture and Verify. These external tools are not runtime or dev packages in `package.json`; no browser runner was added to the npm lockfile.
+`.factory/settings.json` registers the GitHub marketplace `Factory-AI/factory-plugins` as `factory-plugins` and enables `droid-control@factory-plugins`. `scripts/provision-qa-browser.sh` explicitly installs and checks the project plugin in CI, installs global agent-browser 0.37.1, and downloads managed Chrome with dependencies using that driver. The Chrome cache must contain exactly one executable; the script does not separately pin Chrome by version. `scripts/run-qa.sh` rechecks the driver version and preserves the provisioned absolute paths and owned session.
 
-`.factory/skills/qa/config.yaml` has `test_tool: agent-browser`, with `imagemagick`, `video_evidence`, and `droid_control.compose` all false. `.github/workflows/qa.yml` reads these with runner-provided `yq` and conditionally installs ImageMagick; ffmpeg when video or Compose is enabled; and clang, libclang-dev, and libx264-dev when Compose is enabled. Rust is assumed preinstalled by the workflow. Compose renderer dependency setup is delegated to the plugin and is not performed when Compose is off.
+The QA skills route browser interaction through droid-control's browser-use driver, plus Capture and Verify. These external agent tools are not runtime or dev packages in `package.json` or `package-lock.json`. The separate fixed Playwright runner is an npm dev dependency; it does not use this plugin or Factory credentials.
 
-The current configuration requests no optional system packages or video renderer. `FACTORY_API_KEY` authenticates the CI agent; optional inline video attachments need separate evidence-token wiring, not present by default. See [Functional QA](../features/functional-qa.md) and [Configuration](configuration.md) for routing, environments, and evidence limits.
+`.factory/skills/qa/config.yaml` has `test_tool: agent-browser`, with `imagemagick`, `video_evidence`, and `droid_control.compose` all false. `.github/workflows/qa.yml` reads these with runner-provided `yq`, rejects video or Compose in CI, and conditionally installs only ImageMagick when requested. The workflow no longer installs ffmpeg or Compose build dependencies.
+
+The current configuration requests no optional ImageMagick package or video renderer. Managed Chrome provisioning still installs its required system libraries. `FACTORY_API_KEY` authenticates the CI plugin/agent steps; CI evidence is text/screenshots only. See [Functional QA](../features/functional-qa.md) and [Configuration](configuration.md) for routing, environments, and evidence limits.
 
 ## Python packages
 
@@ -91,4 +96,4 @@ Pinned in `.github/scripts/requirements.txt` and used only by `.github/scripts/p
 
 ## Dev tooling
 
-Oxlint and Oxfmt check source style, Husky and lint-staged check staged changes, and Vitest tests pure modules plus source-text markup invariants. Vitest does not exercise the DOM controller in a browser; optional functional QA covers selected interactions separately. See [Tooling](../how-to-contribute/tooling.md), [Testing](../how-to-contribute/testing.md), and [Trust boundaries](../security.md) for scope and limits.
+Oxlint and Oxfmt check source style, Husky and lint-staged check staged changes, and Vitest tests pure modules, source-text markup invariants, and the QA report gate in `scripts/check-qa-report.test.ts`. Vitest does not exercise the DOM controller in a browser. `e2e/diagram.spec.ts` supplies fixed Chromium assertions, while optional functional QA selects broader interactions from the diff. See [Tooling](../how-to-contribute/tooling.md), [Testing](../how-to-contribute/testing.md), and [Trust boundaries](../security.md) for scope and limits.

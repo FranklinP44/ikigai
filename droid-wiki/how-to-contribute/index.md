@@ -1,6 +1,6 @@
 # How to contribute
 
-Contributions use issue forms, a reviewed pull request, five automated checks, and manual browser checks for page changes.
+Contributions use issue forms, a reviewed pull request, five repository checks, and browser verification for page changes.
 
 Active contributors: FranklinP44
 
@@ -25,7 +25,9 @@ Start here to pick up work and understand the definition of done. Follow [Develo
 6. To request Droid code and shallow security review, add `droid-review` to a non-draft PR. It does not run automatically on every PR; subsequent commits rerun review while the label remains. See [Tooling](tooling.md).
 7. To request functional browser QA, add `qa` to a non-draft PR. `.github/workflows/qa.yml` tests the branch on local servers and updates one report comment. It needs the `FACTORY_API_KEY` repository secret and is not a required check. Docs-only and test-only changes do not run app flows. See [Functional QA](../features/functional-qa.md).
 
-Normal PRs run the Pages validation workflow without deploying. Wiki-related PRs also run Confluence conversion in dry-run mode. The generated rolling wiki PR is an exception: its built-in GitHub token does not trigger these workflows, so review and validate it explicitly before merging. See [Wiki refresh](../features/wiki-refresh.md).
+The QA report gate in `scripts/check-qa-report.mjs` fails on FAIL, BLOCKED, malformed reports, or unsuccessful processes. A tooling-only diff can receive the exact accepted INCONCLUSIVE row without testing the app. Do not count browser installation as application validation; request a separately authorized targeted QA run when validating QA tooling.
+
+Normal PRs run the Pages validation workflow without deploying. `.github/workflows/e2e.yml` separately runs the fixed Playwright browser suite, except for wiki-only changes; it needs no label or Factory secret. Wiki-related PRs also run Confluence conversion in dry-run mode. The generated rolling wiki PR is an exception: its built-in GitHub token does not trigger these workflows, so review and validate it explicitly before merging. See [Wiki refresh](../features/wiki-refresh.md).
 
 ## Definition of done
 
@@ -40,6 +42,7 @@ npm run build
 ```
 
 - Keep 100% coverage for the pure modules; do not weaken thresholds or skip failing tests.
+- Before pushing page changes, install Chromium once with `npx playwright install chromium` and run `npm run test:e2e`, as directed by `AGENTS.md`. This is separate from the five checks and does not replace the [manual checklist](testing.md#manual-checklist).
 - For page changes, check desktop hover/click, narrow-width tapping, Explore pills, relevant keyboard focus, and console errors. Verify all 13 zones and the layouts below 900 px and 600 px.
 - Change circle geometry in both `index.html` and `src/geometry.ts`.
 - Keep `AGENTS.md` aligned with cited commands, paths, and names; update `droid-wiki/` when documented behavior changes.
@@ -54,6 +57,7 @@ npm run build
 - `.github/CODEOWNERS`: repository ownership.
 - `.github/workflows/droid-review.yml`: label-gated review.
 - `.github/workflows/qa.yml`, `.factory/skills/qa/config.yaml`: optional browser QA and target settings.
+- `playwright.config.ts`, `e2e/diagram.spec.ts`, `.github/workflows/e2e.yml`: fixed browser suite and CI execution.
 
 ## In this section
 

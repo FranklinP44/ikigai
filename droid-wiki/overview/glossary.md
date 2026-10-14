@@ -47,4 +47,10 @@ Terms used in the code and in this wiki. Code identifiers point to the file wher
 | Functional QA | Diff-targeted browser interactions coordinated by `.factory/skills/qa/SKILL.md`, separate from lint, unit tests, and coverage. See [Functional QA](../features/functional-qa.md). |
 | Visitor persona | The anonymous user defined in `.factory/skills/qa/config.yaml`; no login, account, or credentials are required. |
 | Local preview | The built page served at http://localhost:4173 by `npm run preview`, not a hosted per-PR deployment. `.factory/skills/qa/config.yaml` distinguishes it from the dev server and production. |
+| Playwright | The fixed Chromium browser-test runner declared in `package.json`. `playwright.config.ts` manages a local built preview, and `e2e/diagram.spec.ts` checks page load, Explore buttons, hover and keyboard selection. |
+| E2E | End-to-end tests that drive the built app through a browser. `.github/workflows/e2e.yml` runs the Playwright suite independently of the optional Droid QA job. |
+| Screen transform | The SVG-to-screen coordinate matrix returned by `getScreenCTM()`. The `moveToSvgPoint()` helper in `e2e/diagram.spec.ts` applies it to a probe point before moving the real mouse. |
 | Droid Control | The browser-interaction plugin enabled in `.factory/settings.json`; the QA skills use its browser route, Capture, and Verify stages. Compose is off by default. |
+| Managed QA browser | Chrome installed by the pinned agent-browser 0.37.1 driver in `scripts/provision-qa-browser.sh`, with isolated configuration and an owned session rather than an attached user browser. |
+| QA report gate | `evaluateQaReport()` in `scripts/check-qa-report.mjs` validates the main six-column results table and rejects FAIL, BLOCKED, malformed reports, or unsuccessful QA processes. |
+| No-app-diff result | The single exact INCONCLUSIVE row required by `.factory/skills/qa/SKILL.md` when no app matches the diff. Acceptance by the gate does not mean browser validation occurred. |

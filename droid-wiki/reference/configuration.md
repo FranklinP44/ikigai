@@ -16,9 +16,10 @@ The browser app needs no environment variables or runtime configuration. Build a
 | `scripts.test`, `scripts.test:watch` | `vitest run`, `vitest` | One run or watch mode |
 | `scripts.test:coverage` | `vitest run --coverage` | Enforces pure-module coverage thresholds |
 | `scripts.test:durations` | `node scripts/report-test-durations.mjs` | Summarizes the last JSON test report |
+| `scripts.test:e2e` | `playwright test` | Fixed Chromium suite against a locally served build |
 | `scripts.check:agents-md` | `node scripts/check-agents-md.mjs` | Checks documented scripts, source paths and identifiers |
 | `scripts.prepare` | `husky` | Installs the Git hook during npm installation |
-| `devDependencies` | Eight development packages | No runtime `dependencies`; exact ranges and locks in [Dependencies](dependencies.md) |
+| `devDependencies` | Nine development packages | No runtime `dependencies`; exact ranges and locks in [Dependencies](dependencies.md) |
 | `allowScripts` | `{ "fsevents": false }` | Blocks the install script of the optional macOS `fsevents` package, which ships a prebuilt binary |
 
 There is no `engines` field. `README.md` asks for Node 20.19+ or 22.12+, the range Vite 8 declares.
@@ -52,21 +53,42 @@ Used only for type checking (`noEmit`). Vite strips types itself when bundling.
 
 Everything else uses Vite defaults: `index.html` at the repo root is the entry, output goes to `dist/`.
 
+## `playwright.config.ts`
+
+These settings control the fixed suite in `e2e/diagram.spec.ts`, not the optional Factory QA skills.
+
+| Option | Value | Effect |
+| --- | --- | --- |
+| `testDir` | `"e2e"` | Collects browser tests separately from Vitest |
+| `fullyParallel` | `true` | Allows tests in the same file to run in parallel |
+| `forbidOnly` | `!!process.env.CI` | Rejects focused tests in CI |
+| `retries` | `1` in CI, `0` otherwise | One retry only in CI |
+| `reporter` | CI: GitHub and HTML with `open: "never"`; local: list | No automatic local HTML report |
+| `use.baseURL` | `http://localhost:4173` | `page.goto("/")` targets the built preview |
+| `use.trace` | `"on-first-retry"` | Records a trace on first retry; none on a default local run |
+| `projects` | One `chromium` project with `devices["Desktop Chrome"]` | Desktop Chromium coverage only |
+| `webServer.command` | `npm run build && npm run preview -- --port 4173 --strictPort` | Builds before starting preview, unless an existing server is reused |
+| `webServer.url` | `http://localhost:4173` | Server readiness URL |
+| `webServer.reuseExistingServer` | `!process.env.CI` | Local reuse can test a stale preview; CI does not reuse |
+| `webServer.timeout` | `120_000` ms | Startup timeout, not per-test timeout |
+
+Install Chromium once with `npx playwright install chromium`. CI uses `--with-deps` for system libraries too. The runner reads `CI` to select behavior, but the app needs no environment setup. See [Testing](../how-to-contribute/testing.md#playwright-end-to-end-tests) for assertions and explicit local report options.
+
 ## Tests, linting, formatting, and hooks
 
 | File | Configuration |
 | --- | --- |
-| `vitest.config.ts` | Merges `vite.config.ts`; collects `src/**/*.test.ts` in Node, with no enabled globals. Uses threaded workers, isolated module graphs, parallel files, shuffled file/test order, and restored mocks |
+| `vitest.config.ts` | Merges `vite.config.ts`; collects `src/**/*.test.ts` and `scripts/**/*.test.ts` in Node, with no enabled globals. Uses threaded workers, isolated module graphs, parallel files, shuffled file/test order, and restored mocks |
 | `vitest.config.ts` | Slow-test threshold 1000 ms. Default + JSON reporters locally; also GitHub annotations and JUnit on Actions. Outputs `reports/test-results.json` and `reports/junit.xml` |
 | `vitest.config.ts` | V8 coverage includes source TypeScript but excludes `src/main.ts` and tests. Statements, branches, functions and lines each require 100%; text, HTML and JSON summary reports go to `coverage/`, including on failure |
 | `.oxlintrc.json` | ESLint, TypeScript, Unicorn, Oxc and import plugins; browser/ES2022 environment. Correctness/suspicious categories are errors, performance warnings fail `npm run lint` through `--deny-warnings` |
-| `.oxlintrc.json` | Enforces type imports, no explicit `any` or non-null assertions, import checks, kebab-case filenames and identifier capitalization. Config/scripts overrides use Node; scripts permit console output; test overrides enable Vitest rules, including no focused/disabled tests and consistent filenames |
-| `.oxlintrc.json` | Ignores `dist/`, `coverage/`, `reports/`, `droid-wiki/`, and `.github/` |
-| `.oxfmtrc.json` | Print width 100, avoids arrow parentheses where possible. Ignores `dist/`, `coverage/`, `reports/`, `droid-wiki/`, and `package-lock.json` |
+| `.oxlintrc.json` | Enforces type imports, no explicit `any` or non-null assertions, import checks, kebab-case filenames and identifier capitalization. Config/scripts overrides use Node; scripts permit console output; overrides for `src/**/*.{test,spec}.ts` and `scripts/**/*.test.ts` enable Vitest rules, including no focused/disabled tests and consistent filenames, not the Playwright suite in `e2e/` |
+| `.oxlintrc.json` | Ignores `dist/`, `coverage/`, `reports/`, `playwright-report/`, `test-results/`, `droid-wiki/`, and `.github/` |
+| `.oxfmtrc.json` | Print width 100, avoids arrow parentheses where possible. Ignores `dist/`, `coverage/`, `reports/`, `playwright-report/`, `test-results/`, `droid-wiki/`, and `package-lock.json` |
 | `package.json` | `lint-staged` runs Oxlint with fixes and denied warnings, then Oxfmt, on staged TS/JS variants. Staged JSON/JSONC/CSS/HTML/Markdown/YAML uses Oxfmt |
 | `.husky/pre-commit` | Runs `lint-staged`, `tsc --noEmit`, the AGENTS checker, then `vitest run`, using `npx --no-install` for package binaries |
 
-The hook is not the full completion gate: before finishing, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. See [Testing](../how-to-contribute/testing.md) for isolation, shuffle-seed reproduction, and separate functional browser coverage.
+The hook is not the full completion gate: before finishing, run `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, and `npm run build`. It does not run Playwright; `AGENTS.md` also asks for `npm run test:e2e` before pushing page changes. See [Testing](../how-to-contribute/testing.md) for isolation, shuffle-seed reproduction, and separate browser coverage.
 
 ## Functional QA settings
 
@@ -94,7 +116,7 @@ The hook is not the full completion gate: before finishing, run `npm run check:a
 
 There is no `apps.web.dev_command` or `apps.web.port`. `.factory/skills/qa-web/SKILL.md` defines startup with `npm run dev -- --strictPort`, and built preview with `npm run build` then `npm run preview -- --strictPort`. Generic wiki screenshot discovery requires a dev command and capture tool, so this app entry alone is not eligible. The absent fields do not prevent QA, whose web skill supplies the lifecycle.
 
-`.factory/settings.json` defines `extraKnownMarketplaces.factory-plugins.source` with `source: github` and `repo: Factory-AI/factory-plugins`; `enabledPlugins` maps `droid-control@factory-plugins` to `true`. Capture and Verify run for functional QA; Compose loads only with both video and Compose enabled. See [Functional QA](../features/functional-qa.md).
+`.factory/settings.json` defines `extraKnownMarketplaces.factory-plugins.source` with `source: github` and `repo: Factory-AI/factory-plugins`; `enabledPlugins` maps `droid-control@factory-plugins` to `true`. Capture and Verify run for functional QA. `.github/workflows/qa.yml` and `scripts/run-qa.sh` require video and Compose to remain false in CI; enabling either is a configuration error, not a request to provision a renderer. See [Functional QA](../features/functional-qa.md).
 
 ## `.gitignore`
 
@@ -103,6 +125,7 @@ There is no `apps.web.dev_command` or `apps.web.port`. `.factory/skills/qa-web/S
 | `node_modules/` | Installed packages |
 | `dist/`, `*.tsbuildinfo` | Vite and TypeScript output |
 | `coverage/`, `reports/` | Coverage and Vitest JSON/JUnit reports |
+| `playwright-report/`, `test-results/` | Playwright reports, failure artifacts, and traces |
 | `qa-results/` | Functional QA reports, snapshots, screenshots, and optional recordings |
 | `build/` | Local output of a Confluence dry run (`build/confluence/`) |
 | `.env`, `.env.*`, `!.env.example` | Ignores local environment files while retaining the committed template |
@@ -133,9 +156,23 @@ Actions supplies `GITHUB_ACTIONS` for test reporters and publisher annotation fo
 
 ### QA workflow environment
 
-`.github/workflows/qa.yml` passes `FACTORY_API_KEY` from repository secrets only to the agent step, along with `CI: true`, `BASE_REF` (PR base or default branch), and normalized `VIDEO_EVIDENCE`/`COMPOSE` outputs read from the YAML config. The secret is for the CI agent, not the app; fork PRs do not receive it. No npm command gains an environment requirement from QA.
+`.github/workflows/qa.yml` passes `FACTORY_API_KEY` from repository secrets to the browser-provisioning and agent steps. The agent also receives `CI: true`, `BASE_REF` (PR base or default branch), and normalized false `VIDEO_EVIDENCE`/`COMPOSE` outputs. The secret authenticates Factory tooling, not the app; fork PRs do not receive it. No npm command gains an environment requirement from QA.
 
-The skill documents optional `QA_EVIDENCE_TOKEN` and `REPO_ID` for inline attachments, but neither is currently wired into the Run QA environment. Without an upload token, evidence stays in text and workflow artifacts. Enabling video does not itself supply credentials. The report/comment steps use workflow-provided run/artifact URLs and `github.token` for PR comments, not app authentication.
+`scripts/provision-qa-browser.sh` exports these paths through `GITHUB_ENV`; `scripts/run-qa.sh` validates them before starting the model:
+
+| Variable | Meaning |
+| --- | --- |
+| `QA_AGENT_BROWSER` | Absolute executable path for agent-browser 0.37.1 |
+| `QA_BROWSER_CONFIG` | Absolute path to the empty isolated JSON config under `RUNNER_TEMP` |
+| `QA_BROWSER_EXECUTABLE_PATH` | Absolute executable path for the sole managed Chrome cache entry |
+| `AGENT_BROWSER_CONFIG`, `AGENT_BROWSER_EXECUTABLE_PATH` | Restored from the two provisioned paths after inherited `AGENT_BROWSER_*` overrides are cleared |
+| `AGENT_BROWSER_SESSION` | Owned `qa-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` session for the model run; provisioning uses a separate `qa-bootstrap-...` session |
+
+The scripts require runner-provided `RUNNER_TEMP`, run IDs/attempts, and `GITHUB_ENV`; the model runner also uses `GITHUB_WORKSPACE` and `BASE_REF`. These are CI script inputs, not local app settings. Every CI browser command must use the absolute provisioned driver and preserve the managed executable/config/session. Do not discover user profiles, attach through CDP, select system Chrome, or upgrade tools during the model run.
+
+The skill documents optional `QA_EVIDENCE_TOKEN` and `REPO_ID` for inline attachments, but neither is currently wired into the Run QA environment. CI evidence stays in text, screenshots, and workflow artifacts; video is prohibited. The report/comment steps use workflow-provided run/artifact URLs and `github.token` for PR comments, not app authentication.
+
+The gate step passes `QA_OUTCOME` to `scripts/check-qa-report.mjs`; the final propagation step also reads `GATE_OUTCOME`. The gate requires the exact main six-column results table and rejects FAIL, BLOCKED, malformed reports, or any unsuccessful process. Only the documented single no-app-diff INCONCLUSIVE row is accepted, without a browser-validation claim. See [Testing](../how-to-contribute/testing.md#reports-and-limits).
 
 ## Workflow settings
 
@@ -160,13 +197,17 @@ Additional automation settings:
 
 | Workflow | Settings |
 | --- | --- |
+| `.github/workflows/e2e.yml` | PRs except changes only under `droid-wiki/**`, plus manual dispatch; `contents: read`, no secrets; workflow/PR-or-ref concurrency with cancellation |
+| `.github/workflows/e2e.yml` | Ubuntu, Node 22 with npm cache, `npm ci`, Chromium installation with `--with-deps`, `npm run test:e2e`; job timeout 15 minutes |
+| `.github/workflows/e2e.yml` | Failure-only `playwright-report` artifact contains `playwright-report/` and `test-results/`, retained 14 days; no deployment or dependency from Pages |
 | `.github/workflows/droid-wiki-refresh.yml` | Pushes to `main` except wiki-only changes; `WIKI_BRANCH: factory/droid-wiki`; repository-wide `droid-wiki-refresh` concurrency without cancellation; 30-minute generation timeout |
 | `.github/workflows/droid-wiki-refresh.yml` | Generation has `contents: read` and step-scoped `FACTORY_API_KEY` secret; separate publish job has `contents: write` and `pull-requests: write`. Factory-only upload, disabled video skill and post-generation video guard; one-day artifact handoff |
 | `.github/workflows/droid-review.yml` | Non-draft PR with `droid-review` label; only that label triggers a labeled event. Code and shallow security review via `Factory-AI/droid-action@main`, with `FACTORY_API_KEY` secret and `allowed_bots: factory-droid` |
 | `.github/workflows/droid.yml` | Event-body/title `@droid` gate; `FACTORY_API_KEY` secret; repository contents read, issue/PR comments write |
 | `.github/workflows/qa.yml` | PR `labeled`, `synchronize`, `reopened`, `ready_for_review` events, ignoring wiki-only changes; non-draft plus `qa` label, only `qa` label additions, no Dependabot actor; manual dispatch |
-| `.github/workflows/qa.yml` | Job permissions `contents: read`, `pull-requests: write`; Node 22, full history; workflow/PR-or-ref concurrency with cancellation at job level |
+| `.github/workflows/qa.yml` | Job permissions `contents: read`, `pull-requests: write`; Node 24 for QA tooling only, full history; workflow/PR-or-ref concurrency with cancellation at job level |
 | `.github/workflows/qa.yml` | Job timeout 25 minutes, agent timeout 20 minutes; required `FACTORY_API_KEY`; `qa-results` artifact retained 14 days; optional/informational, no deployment |
+| `.github/workflows/qa.yml` | Explicit project plugin setup, pinned agent-browser 0.37.1 and managed Chrome; video/Compose forbidden; report gate and evidence publication before final failure propagation |
 
 The rolling wiki PR uses the built-in GitHub token, so other workflows do not automatically run on it. Review the diff before merging. See [Wiki refresh](../features/wiki-refresh.md) for its lifecycle and [Dependencies](dependencies.md) for action versions and Dependabot policy.
 
