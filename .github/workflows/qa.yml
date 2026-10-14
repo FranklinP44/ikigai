@@ -10,10 +10,8 @@
 # There are no preview deployments. The agent starts the Vite dev server from the checked-out
 # branch, polls http://localhost:5173, and tests there; it never targets the production site.
 #
-# Video evidence and Droid Control Compose are read from .factory/skills/qa/config.yaml on every
-# run. Uploading videos into the PR comment also needs a QA_EVIDENCE_TOKEN secret and the
-# QA_EVIDENCE_TOKEN and REPO_ID env entries on the Run QA step; without them, the agent falls
-# back to text evidence and workflow artifacts.
+# CI permits text and screenshot evidence only. Browser provisioning is deterministic and
+# separate from the model run; FAIL, BLOCKED, invalid reports and process failures fail closed.
 name: QA
 
 on:
@@ -57,17 +55,16 @@ jobs:
         run: |
           config=.factory/skills/qa/config.yaml
           is_true() { [ "$(yq "$1" "$config")" = "true" ]; }
-          video=false; compose=false; packages=""
-          if is_true '.video_evidence'; then video=true; fi
-          if is_true '.droid_control.compose'; then compose=true; fi
+          if [ "$(yq '.video_evidence' "$config")" != false ] ||
+             [ "$(yq '.droid_control.compose' "$config")" != false ]; then
+            echo '::error::CI QA requires video_evidence=false and droid_control.compose=false.'
+            exit 1
+          fi
+          packages=""
           if is_true '.imagemagick'; then packages="$packages imagemagick"; fi
-          # agent-browser needs ffmpeg to finalize WebM recordings; Compose needs it to render.
-          if [ "$video" = true ] || [ "$compose" = true ]; then packages="$packages ffmpeg"; fi
-          # Build dependencies of the droid-control Compose renderer (Rust is preinstalled).
-          if [ "$compose" = true ]; then packages="$packages clang libclang-dev libx264-dev"; fi
           {
-            echo "video_evidence=$video"
-            echo "compose=$compose"
+            echo "video_evidence=false"
+            echo "compose=false"
             echo "packages=${packages# }"
           } >> "$GITHUB_OUTPUT"
 
@@ -83,16 +80,20 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          # Only QA tooling needs Node 24; the app's Node support and other jobs are unchanged.
+          node-version: 24
           cache: npm
 
       # Dependencies for the dev server and the build that the agent starts from this checkout.
       - run: npm ci
 
       - name: Install Factory Droid
-        # The checked-in .factory/settings.json enables droid-control@factory-plugins, which Droid
-        # installs at project scope when it starts.
         run: curl -fsSL https://app.factory.ai/cli | sh
+
+      - name: Provision browser driver
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: bash scripts/provision-qa-browser.sh
 
       - name: Run QA
         id: qa
@@ -104,22 +105,15 @@ jobs:
           BASE_REF: ${{ github.base_ref || github.event.repository.default_branch }}
           VIDEO_EVIDENCE: ${{ steps.settings.outputs.video_evidence }}
           COMPOSE: ${{ steps.settings.outputs.compose }}
-        run: |
-          # Without pipefail, the tee below would hide a droid exec failure.
-          set -o pipefail
-          mkdir -p qa-results
-          if [ -z "$FACTORY_API_KEY" ]; then
-            echo "::error::FACTORY_API_KEY is not available. Add it as a repository secret; pull requests from forks do not receive secrets."
-            exit 1
-          fi
-          prompt="You are running in a non-interactive CI environment. There is NO human available. Do NOT use AskUser, do NOT wait for confirmations, do NOT pause for input. Run the qa skill. The diff base is origin/${BASE_REF}; compare it with HEAD using git diff origin/${BASE_REF}...HEAD. There are no preview deployments: start the dev server from this checkout as the qa-web skill describes, poll http://localhost:5173, and test there. Never test the production URL, even if the local server fails. Read video_evidence and droid_control.compose from .factory/skills/qa/config.yaml, use droid-control for every interactive flow, and write the final report to qa-results/report.md"
-          if [ "$VIDEO_EVIDENCE" = true ]; then
-            prompt="$prompt Use droid-control Capture and upload video evidence per the qa skill's Evidence Capture rules."
-            if [ "$COMPOSE" = true ]; then
-              prompt="$prompt Run droid-control Compose for each captured flow before upload."
-            fi
-          fi
-          droid exec --auto high "$prompt" 2>&1 | tee qa-output.txt
+        run: bash scripts/run-qa.sh
+
+      - name: Validate QA results
+        id: gate
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          QA_OUTCOME: ${{ steps.qa.outcome }}
+        run: node scripts/check-qa-report.mjs qa-results/report.md "$QA_OUTCOME"
 
       - name: Upload QA results
         id: artifact
@@ -130,6 +124,9 @@ jobs:
           path: |
             qa-results/
             qa-output.txt
+            ${{ runner.temp }}/qa-plugins.txt
+            ${{ runner.temp }}/qa-driver-version.txt
+            ${{ runner.temp }}/qa-browser-url.txt
           if-no-files-found: ignore
           retention-days: 14
 
@@ -184,17 +181,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           QA_OUTCOME: ${{ steps.qa.outcome }}
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
         run: |
-          if [ "$QA_OUTCOME" != success ]; then
-            echo "::error::The QA run did not finish. See the qa-results artifact and the run log."
-            exit 1
-          fi
-          if [ ! -s qa-results/report.md ]; then
-            echo "::error::The QA run wrote no report to qa-results/report.md."
-            exit 1
-          fi
-          # Match table rows only: the report template's legend line also contains the FAIL marker.
-          if grep -qE '^\|.*:x: FAIL' qa-results/report.md; then
-            echo "::error::QA reported failing test cases. See the QA report."
+          if [ "$QA_OUTCOME" != success ] || [ "$GATE_OUTCOME" != success ]; then
+            echo "::error::QA process=$QA_OUTCOME, report gate=$GATE_OUTCOME. See the published report and logs."
             exit 1
           fi
