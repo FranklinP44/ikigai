@@ -5,7 +5,7 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      include: ["src/**/*.test.ts"],
+      include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
       environment: "node",
       // Each test file runs in its own worker thread with a fresh module graph, and files and
       // tests run in random order, so hidden dependencies on shared state or ordering fail fast.

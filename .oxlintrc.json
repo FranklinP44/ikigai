@@ -44,7 +44,7 @@
       }
     },
     {
-      "files": ["src/**/*.{test,spec}.ts"],
+      "files": ["src/**/*.{test,spec}.ts", "scripts/**/*.test.ts"],
       "plugins": ["vitest"],
       "rules": {
         "vitest/consistent-test-filename": "error",

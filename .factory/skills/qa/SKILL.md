@@ -49,7 +49,13 @@ For each affected app:
 
 For apps NOT affected by the diff, do not load their sub-skill, run their flows, or run their pre-flight checks.
 
-If NO app is affected by the diff (docs-only, CI-only, test-only, or config-only changes), report a single INCONCLUSIVE row: "No app code changed -- QA not applicable for this diff." Do NOT run any app flows.
+If NO app is affected by the diff (docs-only, CI-only, test-only, or config-only changes), report exactly this single row, with no other test rows:
+
+| #   | Test Case                                               | App | Persona | Result                       | Notes                            |
+| --- | ------------------------------------------------------- | --- | ------- | ---------------------------- | -------------------------------- |
+| 1   | No app code changed -- QA not applicable for this diff. | N/A | N/A     | :grey_question: INCONCLUSIVE | No browser validation performed. |
+
+Do NOT run any app flows. This is not successful browser or application validation, even if CI accepts the report. QA-tooling changes still need separately authorized, targeted browser QA before anyone claims application validation.
 
 ## Step 4: Pre-flight Checks (affected apps only)
 
@@ -143,7 +149,9 @@ Evidence quality rules:
 Write the report to `./qa-results/report.md` using `.factory/skills/qa/REPORT-TEMPLATE.md`. Key rules:
 
 - Start with the `## QA Report` heading followed by the test results table.
-- The Result column MUST use emojis: :white_check_mark: PASS, :x: FAIL, :no_entry: BLOCKED, :warning: FLAKY, :grey_question: INCONCLUSIVE. The workflow fails the check when a table row contains `:x: FAIL`.
+- The Result column MUST use emojis: :white_check_mark: PASS, :x: FAIL, :no_entry: BLOCKED, :warning: FLAKY, :grey_question: INCONCLUSIVE. Any actual FAIL or BLOCKED Result cell fails the workflow. Legends, Notes and evidence do not determine the result.
+- Keep the exact six template columns, a separator and at least one complete row in one contiguous table immediately after the heading. Row IDs must be unique positive integers. Replace all placeholders. Missing, malformed or unknown results fail closed; INCONCLUSIVE is accepted only in the exact no-app-diff form in Step 3. Do not use it to hide blocked flows.
+- In CI, honor the caller's provisioned absolute QA_AGENT_BROWSER executable, managed browser/config and unique owned session on every browser command. Never use a bare driver, npx, system Chrome, attachments or upgrades. Close only that owned session. CI permits text/screenshots only, not video or Compose.
 - Keep it CONCISE: the table, a short "Action Required" section (if any), and the collapsed evidence block are the entire report.
 - Do NOT include a "Behavioral Change Summary", "Blocked Flows" prose, an "Info" metadata table, or a long explanation of the diff.
 - Do NOT report setup steps (installing, building, starting servers) as test rows. Only report rows that verify user-facing behavior or the specific change.
