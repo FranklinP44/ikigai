@@ -1,6 +1,6 @@
 # Development workflow
 
-Edit with Vite, verify pure logic with Vitest, then run all five repository checks before requesting review.
+Edit with Vite, verify pure logic with Vitest, then run all five repository checks before requesting review. For page changes, also run the Playwright browser suite.
 
 Active contributors: FranklinP44
 
@@ -43,6 +43,15 @@ npm run preview
 
 The build type-checks with `tsc --noEmit` before Vite writes `dist/`. Preview serves the production bundle at http://localhost:4173; opening `dist/index.html` from disk is unsupported. Run the [manual browser checklist](testing.md#manual-checklist), including narrow layouts and touch behavior when relevant.
 
+For page changes, `AGENTS.md` also requires browser tests before pushing:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+Browser installation is a one-time setup. `playwright.config.ts` normally builds and starts a strict-port preview on 4173, but outside CI it reuses an answering server. Stop an old preview first if it might serve a stale build or another working tree; a reused server skips the configured build/start command. CI never reuses it. See [Testing](testing.md#playwright-end-to-end-tests) for the suite's scope and reports.
+
 Use `npm run lint:fix` and `npm run format` to repair lint/format findings, then inspect the diff and rerun checks. TypeScript rejects unused locals and parameters. Update `AGENTS.md` when a cited command, path, or name changes rather than weakening its checker.
 
 ## Commit and review
@@ -54,13 +63,15 @@ Stage the intended files and commit with a conventional prefix. `.husky/pre-comm
 3. `scripts/check-agents-md.mjs`.
 4. `vitest run`, without coverage.
 
-Inspect automatic edits and fix failures rather than bypassing the hook. The hook is not a replacement for the full five checks: it does not run coverage or a Vite production build.
+Inspect automatic edits and fix failures rather than bypassing the hook. The hook is not a replacement for the full five checks: it does not run coverage or a Vite production build. It also does not run Playwright, which needs a browser and built-page server (`AGENTS.md`).
 
 Open a PR to `main` using `.github/pull_request_template.md`. Owner review comes from `.github/CODEOWNERS`. Add `droid-review` for optional Droid code and security review on a non-draft PR; without that label, auto review is skipped.
 
 For optional browser QA, add `qa` to a non-draft PR. `.github/workflows/qa.yml` reruns when new commits arrive while the label remains, and updates a single report comment. It runs only the relevant flows selected by `.factory/skills/qa/SKILL.md`, not all browser flows or the static checks. Locally, ask Droid to run the `qa` skill against http://localhost:5173; it includes uncommitted changes when selecting flows. Never use the production site to verify branch code. See [Functional QA](../features/functional-qa.md).
 
-Normal PR CI runs the same five gates, with duration reporting and report upload between coverage and build. After merging, Pages deploys. The rolling `factory/droid-wiki` PR is created with the built-in GitHub token, so it does not automatically run CI or the Confluence dry run; review and validate its diff explicitly. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
+CI provisions a pinned browser driver before the agent runs, using Node 24 only for QA. `scripts/check-qa-report.mjs` rejects FAIL, BLOCKED, invalid reports, and unsuccessful processes after evidence publication. QA-tooling-only diffs produce the exact no-app-diff INCONCLUSIVE row with no browser validation; they need separately authorized targeted QA before anyone claims app validation. `scripts/check-qa-report.test.ts` still runs in ordinary unit checks and the pre-commit hook.
+
+Normal PR CI runs the same five gates, with duration reporting and report upload between coverage and build. `.github/workflows/e2e.yml` runs Playwright independently on PRs except wiki-only changes, without the optional QA label or secret. After merging, Pages deploys; its workflow does not depend on the separate E2E workflow. The rolling `factory/droid-wiki` PR is created with the built-in GitHub token, so it does not automatically run CI or the Confluence dry run; review and validate its diff explicitly. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
 
 ## Key source files
 
@@ -69,3 +80,4 @@ Normal PR CI runs the same five gates, with duration reporting and report upload
 - `.github/pull_request_template.md`, `.github/workflows/droid-review.yml`: review process.
 - `.github/workflows/deploy-pages.yml`: CI gates and deployment.
 - `.github/workflows/qa.yml`, `.factory/skills/qa/SKILL.md`: optional diff-targeted browser verification.
+- `playwright.config.ts`, `e2e/diagram.spec.ts`, `.github/workflows/e2e.yml`: fixed built-page browser tests.

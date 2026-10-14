@@ -18,7 +18,7 @@ Four circles could form 15 combinations, but the app defines only 13 zones. The 
 
 `.github/scripts/publish_confluence.py`, which copies this wiki to Confluence, is still 535 physical lines. It once outweighed the 465-line TypeScript app; the 12 Oct 2026 formatting pass took app source to 800 lines without new runtime behavior. The 14 Oct 2026 keyboard-focus fix added five lines in `src/styles.css`, bringing the current app total to 805. That means `index.html`, `src/data.ts`, `src/geometry.ts`, `src/main.ts`, and `src/styles.css`, excluding the 273 lines of adjacent tests.
 
-Counts include blanks and comments, not just executable code. Eight direct dev dependencies now correspond to 179 non-root entries in `package-lock.json`, including optional platform variants; there are still no npm runtime dependencies. See [By the numbers](by-the-numbers.md) for the full scope and snapshot.
+Counts include blanks and comments, not just executable code. Nine direct dev dependencies now correspond to 182 non-root entries in `package-lock.json`, including optional platform variants; there are still no npm runtime dependencies. The browser suite in `e2e/diagram.spec.ts` adds 70 test lines outside the app. Another 166 lines in `scripts/check-qa-report.test.ts` register 67 QA report-gate cases, bringing Vitest's declared total to 160 without changing the 93 app-unit cases or the eight Playwright cases. See [By the numbers](by-the-numbers.md) for the full scope, counting method and snapshot.
 
 ## 39 tiny stories
 

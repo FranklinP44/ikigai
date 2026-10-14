@@ -24,7 +24,9 @@ Anyone curious about the Ikigai framework. There is no login, backend, or data c
 | Hosting | GitHub Pages, deployed by GitHub Actions | `.github/workflows/deploy-pages.yml` |
 | Fonts | Google Fonts (Fraunces, Inter, Noto Serif JP) | `index.html` |
 
-`package.json` declares eight dev dependencies: TypeScript, Vite, Vitest and its coverage provider, Oxlint, Oxfmt, Husky, and lint-staged. There are no npm runtime dependencies. Nothing from npm ships to the browser beyond the compiled app code.
+`package.json` declares nine dev dependencies: TypeScript, Vite, Vitest and its coverage provider, Playwright's test runner, Oxlint, Oxfmt, Husky, and lint-staged. There are no npm runtime dependencies. Nothing from npm ships to the browser beyond the compiled app code.
+
+Tests have three layers: Node-based unit tests in `src/*.test.ts` and `scripts/check-qa-report.test.ts`, repeatable Chromium checks in `e2e/diagram.spec.ts`, and optional diff-targeted Droid QA. `playwright.config.ts` runs the browser suite against the production build served locally, not the deployed site. `.github/workflows/qa.yml` provisions a pinned browser driver before Droid runs and rejects failed, blocked, or malformed reports.
 
 ## Quick links
 
@@ -34,6 +36,7 @@ Anyone curious about the Ikigai framework. There is no login, backend, or data c
 - [Deployment](../deployment.md): how pushes to `main` reach GitHub Pages, and how this wiki is published to Confluence.
 - [Wiki refresh](../features/wiki-refresh.md): the Factory-only documentation refresh and rolling pull request, with video disabled.
 - [Functional QA](../features/functional-qa.md): optional, diff-targeted browser checks against branch-local servers.
+- [Testing](../how-to-contribute/testing.md): unit coverage, Playwright browser checks, and how to run both.
 - [Zone exploration](../features/zone-exploration.md): the main user-facing interaction.
 - [Region rendering](../systems/region-rendering.md): how the SVG masks carve out each overlap region.
 - [Zone keys](../primitives/zone-keys.md): the letter keys (`L`, `LG`, `LGNP`, ...) that tie everything together.

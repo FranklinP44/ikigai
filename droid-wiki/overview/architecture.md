@@ -39,9 +39,13 @@ See [By the numbers](../by-the-numbers.md) for the full snapshot.
 
 ## Build and documentation tooling
 
-`package.json` separates browser code from development tools. Oxlint and Oxfmt check source style; `scripts/check-agents-md.mjs` checks contributor instructions against the repository; `vitest.config.ts` configures Node-based tests for the pure modules and raw markup. `.github/workflows/deploy-pages.yml` runs those checks before building the site. None of those tools runs in the browser.
+`package.json` separates browser code from development tools. Oxlint and Oxfmt check source style; `scripts/check-agents-md.mjs` checks contributor instructions against the repository; `vitest.config.ts` configures Node-based tests for the pure modules, raw markup, and QA report gate in `scripts/check-qa-report.test.ts`. `.github/workflows/deploy-pages.yml` runs those checks before building the site. None of those tools runs in the browser.
 
-Functional browser checks are separate from those gates. `.github/workflows/qa.yml` invokes the orchestrator in `.factory/skills/qa/SKILL.md`, which maps the diff to the web flows in `.factory/skills/qa-web/SKILL.md`. `.factory/skills/qa/config.yaml` selects the anonymous visitor persona and local targets; `.factory/settings.json` enables the droid-control plugin. The optional QA job tests branch code, not the production deployment. See [Functional QA](../features/functional-qa.md).
+Browser checks have two independent paths. `playwright.config.ts` starts the build and a local preview on port 4173, then runs the eight Chromium cases in `e2e/diagram.spec.ts`. `.github/workflows/e2e.yml` runs that fixed suite on pull requests unless all changed paths are under the wiki; it needs no Factory secret. See [Testing](../how-to-contribute/testing.md).
+
+For optional diff-targeted checks, `.github/workflows/qa.yml` invokes the orchestrator in `.factory/skills/qa/SKILL.md`, which maps the diff to the web flows in `.factory/skills/qa-web/SKILL.md`. `.factory/skills/qa/config.yaml` selects the anonymous visitor persona and local targets; `.factory/settings.json` enables the droid-control plugin. Both browser paths test branch code, not the production deployment. See [Functional QA](../features/functional-qa.md).
+
+The QA job alone uses Node 24. `scripts/provision-qa-browser.sh` installs agent-browser 0.37.1 and managed Chrome, checks an isolated `about:blank` session, and exports absolute tool paths. `scripts/run-qa.sh` preserves those paths and owns a separate session for the model run. `scripts/check-qa-report.mjs` validates the main results table before the workflow publishes evidence and propagates process or gate failures. Browser provisioning does not validate the app.
 
 Documentation has a separate lifecycle. `.github/workflows/droid-wiki-refresh.yml` updates Markdown and uploads it to Factory, then opens a rolling pull request. `.github/workflows/publish-wiki-to-confluence.yml` publishes committed wiki changes to Confluence. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
 
@@ -110,4 +114,7 @@ Because the records are typed by `ZoneKey`, the compiler rejects a missing or mi
 | `src/styles.css` | Design tokens, entrance animations, zone overlay transitions, panel styling, and responsive breakpoints |
 | `vite.config.ts` | Vite settings; `base: './'` for relative asset URLs |
 | `tsconfig.json` | Strict TypeScript compiler options for type checking only (`noEmit`) |
+| `playwright.config.ts` | Chromium project, local build/preview lifecycle, retries and reporting |
+| `e2e/diagram.spec.ts` | Initial state, five Explore buttons, coordinate-based hover and keyboard selection |
+| `.github/workflows/e2e.yml` | Runs browser tests on PRs and saves failure reports |
 | `.github/workflows/deploy-pages.yml` | Builds on every push and PR, deploys `dist/` to GitHub Pages from `main` |

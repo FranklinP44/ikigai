@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-14T12:03:05Z",
-  "commitHash": "ee0906ddca3a9a53907c9c26c1670001ebc7dfe1",
+  "generatedAt": "2026-10-14T17:48:41Z",
+  "commitHash": "2531498d2fba7303aeb4fd5c0ad84705abd25d34",
   "branch": "main",
   "pageCount": 33,
   "topLevelSections": [
@@ -55,6 +55,8 @@
   ],
   "videoOverview": {
     "status": "skipped",
-    "warnings": ["Video generation and reuse skipped at the user's request."]
+    "warnings": [
+      "Video generation and reuse skipped at the user's request."
+    ]
   }
 }

@@ -1,6 +1,6 @@
 # Lore
 
-The repository is young: 32 commits reachable from `main` at `120cd5f` between 25 Sep and 14 Oct 2026. It grew from a three-file static page into a TypeScript/Vite app with contributor checks, unit tests, an automatic wiki lifecycle and optional functional QA. This history was refreshed on 14 Oct 2026. The runtime model remains the same; [By the numbers](by-the-numbers.md) separates app size from tooling growth.
+The repository is young: 40 commits reachable from `main` at `2531498` between 25 Sep and 14 Oct 2026. It grew from a three-file static page into a TypeScript/Vite app with contributor checks, unit and browser tests, an automatic wiki lifecycle and optional functional QA. This history was refreshed on 14 Oct 2026. The runtime model remains the same; [By the numbers](by-the-numbers.md) separates app size from tooling growth.
 
 ## Eras
 
@@ -39,6 +39,8 @@ On **13 Oct 2026**, `657aa65` introduced 93 Vitest cases in `src/data.test.ts`, 
 
 Also on **13 Oct**, `cafa4bc` added `.env.example`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, issue forms under `.github/ISSUE_TEMPLATE/`, `.github/dependabot.yml`, and broader `.gitignore` rules. The commit describes generated readiness fixes reviewed by hand. PR #9 merged it on **14 Oct** (`0681ec5`). Ownership remains a single catch-all maintainer in `.github/CODEOWNERS`, not a new team structure. Node 20.19 compatibility shaped dependency-major exclusions. On **14 Oct**, PRs #10 and #11 merged the first grouped Vite patch and Actions updates (`15a5f0f`, `d2e266f`; merges `f663073`, `b652913`).
 
+On **14 Oct 2026**, `247ef58` added `.pill:focus-visible` in `src/styles.css`, merged as PR #16 (`ee0906d`). The commit records that the default dark focus ring was hard to see on the active dark pill. A 2 px ink outline offset by 3 px now places the ring against the light page background. This added five physical app lines without changing selection behavior.
+
 ### Automatic wiki refresh (14 Oct 2026)
 
 Commit `c5062de`, merged as PR #12 (`ceb6e4e`) on **14 Oct 2026**, added `.github/workflows/droid-wiki-refresh.yml`. Pushes to `main` now refresh the wiki and upload it **to Factory only**, then open or update one rolling PR from `factory/droid-wiki`. Wiki-only pushes are ignored to avoid a refresh loop; the previous rolling wiki is restored to support incremental updates.
@@ -56,6 +58,20 @@ The workflow runs for a non-draft pull request carrying the `qa` label, re-runs 
 Runs target the branch's local Vite server at port 5173, plus a local built preview at port 4173 when relevant. Production is forbidden for PR and CI testing, including as a fallback. Reports update one PR comment and retain screenshots/logs as artifacts. Video evidence and Compose are both disabled in the checked-in configuration.
 
 The commit message records generation with the install-qa skill followed by manual review: preserving Droid failures through `tee`, escaping bot mentions in report comments, and restricting the report failure-marker match to table rows. It also records local-smoke-run fixes for orphaned Vite processes, the missing favicon and a scrolled-out heading. See [Functional QA](features/functional-qa.md).
+
+### Repeatable browser tests (14 Oct 2026)
+
+On **14 Oct 2026**, `06afe90` added `e2e/diagram.spec.ts`, `playwright.config.ts`, the `test:e2e` script in `package.json`, and `.github/workflows/e2e.yml`. PR #17 merged it as `8867d45` that day. This fixed Chromium suite complements the earlier diff-targeted QA agent; it does not replace it or require Factory credentials.
+
+The eight cases cover initial load, the five Explore buttons, hover and keyboard selection. The suite tests a production build served locally on port 4173, not the deployed Pages site. Coordinate conversion in `e2e/diagram.spec.ts` moves the real mouse because diagram hover is computed from pointer position. The workflow retains reports on failure, and the browser suite stays outside the pre-commit hook. No runtime files changed. See [Testing](how-to-contribute/testing.md).
+
+### Managed QA browser and strict report gate (14 Oct 2026)
+
+On **14 Oct 2026**, `e7afa12` made QA browser provisioning explicit and report validation fail closed. PR #19 merged it as `2531498` that day. `scripts/provision-qa-browser.sh` activates the project plugin, installs pinned `agent-browser@0.37.1`, provisions managed Chrome with dependencies, isolates browser configuration and verifies an owned `about:blank` session. `.github/workflows/qa.yml` uses Node 24 for this QA job only; normal build and Playwright jobs stay on Node 22, and the application's Node floor is unchanged.
+
+`scripts/run-qa.sh` preserves absolute provisioned paths, clears attachment overrides and closes only its owned session. `scripts/check-qa-report.mjs` validates the main six-column QA table rather than searching for failure words anywhere in a report. Actual FAIL/BLOCKED Result cells, missing or malformed reports, and unsuccessful QA processes fail the gate; legends and Notes do not determine the outcome. A single exact no-app-diff INCONCLUSIVE row is accepted only with an explicit statement that no browser validation occurred. The workflow publishes reports and logs before propagating the final failure.
+
+The new `scripts/check-qa-report.test.ts` registers 67 regression cases alongside the unchanged 93 app-unit cases in `vitest.config.ts`. Provisioning success is not application validation: an `about:blank` check proves browser readiness, not that diagram flows pass. QA-tooling-only diffs need separately authorized targeted QA to claim browser validation. Video and Compose remain disabled, and no app source changed. See [Functional QA](features/functional-qa.md).
 
 ## Longest-standing features
 
@@ -92,6 +108,9 @@ The pieces most likely to survive future changes are the ones the rest of the co
 | 12 Oct 2026 (merged 13 Oct) | 5 | 800 | Formatting and contributor-tooling pass (PR #6), no runtime feature growth |
 | 14 Oct 2026 | 5 | 800 | Tests, hygiene and automatic wiki refresh merged (PRs #7–#12) |
 | 14 Oct 2026 | 5 | 800 | Wiki refresh and optional functional QA merged (PRs #13–#14); app unchanged |
+| 14 Oct 2026 | 5 | 805 | Explore-pill focus ring fixed (PR #16) |
+| 14 Oct 2026 | 5 | 805 | Fixed Playwright suite added (PR #17); app unchanged |
+| 14 Oct 2026 | 5 | 805 | Managed QA browser and strict report gate added (PR #19); app unchanged |
 
 App lines are physical lines including blanks/comments: `index.html` plus runtime scripts and stylesheet, excluding tests. Tooling, config, and the wiki are separate in [By the numbers](by-the-numbers.md). Dates above come from git author dates; merge dates are noted where different. The growth rows describe the app state at each milestone, not a uniform first-parent calendar series.
 
