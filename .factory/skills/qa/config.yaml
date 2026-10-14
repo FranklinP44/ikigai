@@ -1,0 +1,78 @@
+project: Ikigai
+platform: github
+imagemagick: false
+video_evidence: false # record interactive flows through droid-control
+droid_control:
+  plugin: droid-control@factory-plugins
+  compose: false # single runtime toggle for optional edited MP4 output
+
+# There are no hosted preview deployments. "preview" below is the local `vite preview` server for
+# the production build, not a per-PR deployment.
+environments:
+  local:
+    # Vite dev server from the checked-out branch, started with `npm run dev`.
+    url: http://localhost:5173
+    restrictions: []
+  preview:
+    # Production build served locally, started with `npm run build && npm run preview`.
+    url: http://localhost:4173
+    restrictions: []
+  production:
+    # GitHub Pages, deployed from main by .github/workflows/deploy-pages.yml.
+    url: https://franklinp44.github.io/ikigai/
+    restrictions:
+      - Read-only. Only observe the page; never change anything about the deployment.
+      - Never the target for pull request runs or CI runs; it serves main, not the branch.
+      - Never a fallback when the local server cannot start. Report BLOCKED instead.
+
+default_target: local
+
+auth:
+  method: none
+  provider: none
+
+personas:
+  - name: visitor
+    description: "Anonymous visitor exploring the diagram. No login and no account."
+    credentials_source: none
+    test_focus:
+      [
+        "page load",
+        "hover",
+        "click to pin",
+        "Explore pills",
+        "keyboard",
+        "console errors",
+        "built page",
+      ]
+    cannot_do: []
+
+apps:
+  web:
+    path_patterns:
+      - "index.html"
+      - "src/**"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "package-lock.json"
+    # Unit tests live next to the code but do not change the page.
+    exclude_patterns:
+      - "src/**/*.test.ts"
+    skill: qa-web
+    test_tool: agent-browser
+    build_command: "npm run build"
+
+feature_flags:
+  provider: none
+  dashboard_url: ""
+  how_to_override: "Not applicable: the page has no feature flags."
+
+integrations: {}
+
+cleanup:
+  auto_cleanup: false
+  strategy: none
+  instructions: "Not applicable: the page is static and read-only, and QA creates no data. Stop any dev or preview server the run started."
+
+failure_learning: suggest_in_report

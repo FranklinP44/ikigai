@@ -1,0 +1,62 @@
+# Saved answers from /install-qa so a later run can resume with them as defaults.
+started_fresh: true
+completed_categories: [1, 2, 3, 4, 5, 6, 7, 8]
+platform: github
+detected:
+  apps:
+    web:
+      kind: static single-page web app (Vite 8, TypeScript, no framework, no runtime dependencies)
+      path_patterns:
+        [index.html, src/**, vite.config.ts, tsconfig.json, package.json, package-lock.json]
+  auth: none
+  feature_flags: none
+  integrations: none
+  ci: GitHub Actions (deploy-pages, droid-review, droid, droid-wiki-refresh, publish-wiki-to-confluence)
+  existing_qa_workflows: none
+  preview_deployments: none
+  droid_control: active at project scope
+category_1_default_target:
+  default_target: local
+  environments:
+    local: { url: http://localhost:5173, start: npm run dev }
+    preview: { url: http://localhost:4173, start: npm run build && npm run preview }
+    production:
+      { url: https://franklinp44.github.io/ikigai/, read_only: true, never_for_pull_requests: true }
+  ci_target: start the dev server from the branch and poll http://localhost:5173; never fall back to production
+category_2_personas:
+  auth_method: none
+  personas:
+    - name: visitor
+      anonymous: true
+      can: explore every zone
+      cannot: nothing
+  test_accounts: none
+  secrets: none
+category_3_flows:
+  app: web
+  skill: qa-web
+  test_tool: agent-browser
+  flows:
+    - page load with title, diagram, and the Ikigai zone selected
+    - hovering a region updates the panel
+    - clicking a region pins it; leaving the diagram returns to the pinned zone
+    - each Explore pill selects its zone
+    - keyboard selection of the pills (SVG regions are not focusable, which is expected)
+    - no console errors, and the built page works under npm run preview
+  multi_persona: false
+  creates_data: false
+category_4_integrations: none
+category_5_cleanup:
+  strategy: none
+category_6_imagemagick: false
+category_7_ci:
+  generate_workflow: true
+  required: false
+  wait_for_preview: false
+  video_evidence: false
+  droid_control_compose: false
+  triggers: pull_request [labeled, synchronize, reopened, ready_for_review] with paths-ignore droid-wiki/**, and workflow_dispatch
+  label: qa
+  skip_actor: dependabot[bot]
+  concurrency: job level
+category_8_failure_learning: suggest_in_report

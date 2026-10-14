@@ -1,0 +1,200 @@
+# Functional QA of the Ikigai page, driven by the qa skill in .factory/skills/qa/.
+#
+# Optional and informational: this check is not a required status check, so a failure here does
+# not block merging unless a repository admin adds it to the branch protection rules.
+#
+# Runs only on demand: add the qa label to a non-draft pull request. While the label is present,
+# new commits re-run QA. workflow_dispatch runs always (the diff is then the dispatched ref
+# against the default branch).
+#
+# There are no preview deployments. The agent starts the Vite dev server from the checked-out
+# branch, polls http://localhost:5173, and tests there; it never targets the production site.
+#
+# Video evidence and Droid Control Compose are read from .factory/skills/qa/config.yaml on every
+# run. Uploading videos into the PR comment also needs a QA_EVIDENCE_TOKEN secret and the
+# QA_EVIDENCE_TOKEN and REPO_ID env entries on the Run QA step; without them, the agent falls
+# back to text evidence and workflow artifacts.
+name: QA
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "droid-wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    # On labeled events, only the qa label itself starts a run, so unrelated labels don't re-run it.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'qa') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'qa')))
+    # Job-level so that runs skipped by the gate above never cancel a QA run in progress.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history so the agent can diff the branch against its base.
+          fetch-depth: 0
+
+      - name: Read QA settings
+        id: settings
+        # yq is preinstalled on GitHub-hosted Ubuntu runners. Outputs are normalized to fixed
+        # strings so values from the config never reach a shell command unquoted.
+        run: |
+          config=.factory/skills/qa/config.yaml
+          is_true() { [ "$(yq "$1" "$config")" = "true" ]; }
+          video=false; compose=false; packages=""
+          if is_true '.video_evidence'; then video=true; fi
+          if is_true '.droid_control.compose'; then compose=true; fi
+          if is_true '.imagemagick'; then packages="$packages imagemagick"; fi
+          # agent-browser needs ffmpeg to finalize WebM recordings; Compose needs it to render.
+          if [ "$video" = true ] || [ "$compose" = true ]; then packages="$packages ffmpeg"; fi
+          # Build dependencies of the droid-control Compose renderer (Rust is preinstalled).
+          if [ "$compose" = true ]; then packages="$packages clang libclang-dev libx264-dev"; fi
+          {
+            echo "video_evidence=$video"
+            echo "compose=$compose"
+            echo "packages=${packages# }"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install system packages
+        if: steps.settings.outputs.packages != ''
+        env:
+          PACKAGES: ${{ steps.settings.outputs.packages }}
+        run: |
+          sudo apt-get update -qq
+          # Word splitting is intended: PACKAGES is a space-separated list of fixed names.
+          # shellcheck disable=SC2086
+          sudo apt-get install -y -qq $PACKAGES
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # Dependencies for the dev server and the build that the agent starts from this checkout.
+      - run: npm ci
+
+      - name: Install Factory Droid
+        # The checked-in .factory/settings.json enables droid-control@factory-plugins, which Droid
+        # installs at project scope when it starts.
+        run: curl -fsSL https://app.factory.ai/cli | sh
+
+      - name: Run QA
+        id: qa
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+          CI: true
+          BASE_REF: ${{ github.base_ref || github.event.repository.default_branch }}
+          VIDEO_EVIDENCE: ${{ steps.settings.outputs.video_evidence }}
+          COMPOSE: ${{ steps.settings.outputs.compose }}
+        run: |
+          # Without pipefail, the tee below would hide a droid exec failure.
+          set -o pipefail
+          mkdir -p qa-results
+          if [ -z "$FACTORY_API_KEY" ]; then
+            echo "::error::FACTORY_API_KEY is not available. Add it as a repository secret; pull requests from forks do not receive secrets."
+            exit 1
+          fi
+          prompt="You are running in a non-interactive CI environment. There is NO human available. Do NOT use AskUser, do NOT wait for confirmations, do NOT pause for input. Run the qa skill. The diff base is origin/${BASE_REF}; compare it with HEAD using git diff origin/${BASE_REF}...HEAD. There are no preview deployments: start the dev server from this checkout as the qa-web skill describes, poll http://localhost:5173, and test there. Never test the production URL, even if the local server fails. Read video_evidence and droid_control.compose from .factory/skills/qa/config.yaml, use droid-control for every interactive flow, and write the final report to qa-results/report.md"
+          if [ "$VIDEO_EVIDENCE" = true ]; then
+            prompt="$prompt Use droid-control Capture and upload video evidence per the qa skill's Evidence Capture rules."
+            if [ "$COMPOSE" = true ]; then
+              prompt="$prompt Run droid-control Compose for each captured flow before upload."
+            fi
+          fi
+          droid exec --auto high "$prompt" 2>&1 | tee qa-output.txt
+
+      - name: Upload QA results
+        id: artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-results
+          path: |
+            qa-results/
+            qa-output.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Build the QA comment
+        if: ${{ !cancelled() }}
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo '<!-- qa-report -->'
+            if [ -s qa-results/report.md ]; then
+              if ! grep -q '^## QA Report' qa-results/report.md; then
+                printf '## QA Report\n\n'
+              fi
+              # GitHub rejects comments over 65,536 characters.
+              head -c 60000 qa-results/report.md
+            else
+              printf '## QA Report\n\n:no_entry: The QA run produced no report. The end of the agent output is below.\n\n'
+              printf '<details>\n<summary>Agent output</summary>\n\n```text\n'
+              if [ -s qa-output.txt ]; then tail -c 50000 qa-output.txt; else echo 'No output was captured.'; fi
+              printf '\n```\n\n</details>\n'
+            fi
+            printf '\n---\n\n'
+            if [ -n "$ARTIFACT_URL" ]; then
+              printf '[Download screenshots and logs](%s) · ' "$ARTIFACT_URL"
+            fi
+            printf '[Workflow run](%s)\n' "$RUN_URL"
+          } > qa-comment.md
+          # The droid workflow runs on comments that mention the bot, so escape the at sign in
+          # anything the agent wrote.
+          sed -i -E 's/@([Dd][Rr][Oo][Ii][Dd])/\&#64;\1/g' qa-comment.md
+          cat qa-comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post QA report as PR comment
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Update the one QA comment on the pull request instead of adding a new one per run.
+          comment_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- qa-report -->"))) | .id' \
+            | sed -n 1p)
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F body=@qa-comment.md > /dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -F body=@qa-comment.md > /dev/null
+          fi
+
+      - name: Fail the check when QA failed
+        if: ${{ !cancelled() }}
+        env:
+          QA_OUTCOME: ${{ steps.qa.outcome }}
+        run: |
+          if [ "$QA_OUTCOME" != success ]; then
+            echo "::error::The QA run did not finish. See the qa-results artifact and the run log."
+            exit 1
+          fi
+          if [ ! -s qa-results/report.md ]; then
+            echo "::error::The QA run wrote no report to qa-results/report.md."
+            exit 1
+          fi
+          # Match table rows only: the report template's legend line also contains the FAIL marker.
+          if grep -qE '^\|.*:x: FAIL' qa-results/report.md; then
+            echo "::error::QA reported failing test cases. See the QA report."
+            exit 1
+          fi
