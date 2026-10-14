@@ -304,6 +304,11 @@ svg.hovering {
   color: #fff;
   border-color: var(--ink);
 }
+/* The offset keeps the ring on the light page background, so it stays visible on the dark active pill. */
+.pill:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
 .note {
   font-size: 12.5px;
   line-height: 1.6;
