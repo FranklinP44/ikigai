@@ -1,6 +1,12 @@
 # Debugging
 
-The app runs in the browser, so DevTools is the main tool. Problems also show up in two other places: `npm run build` output (type errors) and the GitHub Actions logs (CI and deploy failures).
+Use browser DevTools for runtime behavior and the local validation commands and Actions reports for contributor-tooling failures.
+
+Active contributors: FranklinP44
+
+## Purpose
+
+This runbook separates browser issues from lint, instructions, test, and deployment failures. See [Testing](testing.md) for expected behavior and [Deployment](../deployment.md) for workflow details.
 
 ## Debugging in the dev server
 
@@ -54,6 +60,21 @@ In the Elements panel, expand `svg#ikigai`:
 
 Temporarily setting `.zone { opacity: 1 }` in the Styles pane shows all overlays at once, which makes geometry mistakes obvious.
 
+## Local check failures
+
+| Failure | Next step |
+| --- | --- |
+| Oxlint errors or warnings | Run `npm run lint:fix`, inspect changes, and rerun `npm run lint`. Warnings also fail the check; remove temporary logging and debugger statements. |
+| Formatting check | Run `npm run format`, inspect changes, then `npm run format:check`. `.oxfmtrc.json` excludes generated output and `droid-wiki/`. |
+| Instructions out of date | Read the command/path/name diagnostic from `scripts/check-agents-md.mjs`. Update `AGENTS.md` with the matching source change rather than weakening the checker. |
+| Pre-commit blocked | Check the first failing stage: lint-staged autofix/format, type check, instructions check, or tests. Inspect staged edits before retrying; do not bypass the hook. |
+| Order-dependent test | Reproduce with `npx vitest run --sequence.seed=<seed>` from the failed run. Keep isolated files independent of shared state and ordering. |
+| DOM-related test import error | Do not import `src/main.ts` into Node tests. Use raw text as in `src/index-html.test.ts`. |
+| Coverage below 100% | Inspect `coverage/` and add missing cases in adjacent tests for `src/data.ts` or `src/geometry.ts`; keep thresholds and exclusions intact. |
+| No duration report | Run `npm run test` or `npm run test:coverage` first to create `reports/test-results.json`, then `npm run test:durations`. |
+
+Timing warnings flag tests over 1 second or a suite over 10 seconds, but do not fail CI. The geometry grid scan is intentionally broader than a few example points; compare the slowest-test table before assuming a regression.
+
 ## CI and deploy failures
 
 Open the failed run under the Actions tab at https://github.com/FranklinP44/ikigai/actions, or from the terminal:
@@ -63,10 +84,17 @@ gh run list -R FranklinP44/ikigai --limit 10
 gh run view <run-id> -R FranklinP44/ikigai --log-failed
 ```
 
-- A failure in the `build` job of **Build and deploy to GitHub Pages** is usually the same error `npm run build` shows locally. Run it locally first.
+- In **Build and deploy to GitHub Pages**, find the first failing gate: instructions, lint, format, coverage, or build. Reproduce that command locally. CI uses Node 22 and `npm ci`.
+- Inspect the job's test-duration summary and download `test-reports` for JSON/JUnit and HTML coverage. Duration reporting and artifact upload run when not cancelled, including after earlier failures, but an early failure may leave no reports.
 - A failure in the `deploy` job usually points to the Pages setup (the Pages source must be "GitHub Actions"). See [Deployment](../deployment.md).
 - **Publish wiki to Confluence** fails early with "Missing Confluence configuration" when a required variable or secret is unset on a real publish, and uploads whatever it converted as a `confluence-preview` artifact, even when a step fails.
+- A wiki-refresh video guard failure means `droid-wiki/video` exists despite disabled video generation. A rolling-PR push failure is reported as a warning: generation and Factory upload may already have succeeded. Check Actions permission to create PRs and branch rules; see [Wiki refresh](../features/wiki-refresh.md).
+- The generated rolling wiki PR does not run CI or Confluence dry runs automatically because it uses the built-in GitHub token. A lack of checks is not evidence that validation passed.
 
 ## Logging
 
 The app writes nothing to the console. Add temporary `console.log` calls in the `pointermove` handler in `src/main.ts` to trace coordinates and keys, and remove them before committing.
+
+## Key source files
+
+`src/main.ts`, `src/geometry.ts`, `vite.config.ts`, `vitest.config.ts`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, and `.github/workflows/deploy-pages.yml`.

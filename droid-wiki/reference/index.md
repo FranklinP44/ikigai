@@ -2,8 +2,8 @@
 
 Lookup tables for the settings, data shapes, and dependencies the app uses.
 
-- [Configuration](configuration.md): `package.json` scripts, `tsconfig.json`, `vite.config.ts`, `.gitignore`, workflow settings, constants in `src/main.ts` and `src/geometry.ts`, and design tokens in `src/styles.css`.
+- [Configuration](configuration.md): npm scripts, TypeScript/Vite settings, Vitest/Oxlint/Oxfmt and hooks, tool-only environment variables, ignores, workflow settings, and runtime design constants.
 - [Data models](data-models.md): the types and constants in `src/data.ts` (`CircleKey`, `ZoneKey`, `Circle`, `Zone`, `CIRCLE`, `ZONES`, `EXAMPLES`, `ORDER`, `ZONE_KEYS`) and the geometry in `src/geometry.ts`.
-- [Dependencies](dependencies.md): npm dev dependencies, external resources, GitHub Actions, Python packages, and browser features the page relies on.
+- [Dependencies](dependencies.md): all eight npm dev dependencies and their lockfile versions, external resources, GitHub Actions, Python packages, browser features, and Dependabot policy from `.github/dependabot.yml`.
 
-For how the build and the two workflows fit together, see [Deployment](../deployment.md).
+For how the build and automation fit together, see [Deployment](../deployment.md) and [Wiki refresh](../features/wiki-refresh.md). [Trust boundaries](../security.md) distinguishes public browser assets from privileged tooling.

@@ -2,9 +2,17 @@
 
 The codebase is small, written in strict TypeScript, and has no runtime dependencies. These are the patterns it follows so new changes stay consistent.
 
-## No framework, minimal tooling
+## No runtime framework
 
-Everything is hand-written HTML, CSS, and browser TypeScript. The only tools are TypeScript (type checking) and Vite (dev server and bundler), both dev dependencies. `src/main.ts` is loaded as an ES module (`<script type="module">`) from `index.html`, so it runs after the document is parsed and can query DOM elements at the top level without waiting for `DOMContentLoaded`. Keep it that way unless there is a strong reason to add tooling.
+Everything is hand-written HTML, CSS, and browser TypeScript. `package.json` lists development tools for type checking, bundling, tests, coverage, lint, formatting, and Git hooks, but no runtime dependencies. `src/main.ts` is loaded as an ES module (`<script type="module">`) from `index.html`, so it runs after the document is parsed and can query DOM elements at the top level without waiting for `DOMContentLoaded`.
+
+`AGENTS.md` records the contributor rules, and `scripts/check-agents-md.mjs` checks its commands, paths, and code names. Update the instructions when a change makes a documented reference obsolete; do not weaken the checker.
+
+## Naming and formatting
+
+Follow the naming table in `AGENTS.md`: camelCase variables and functions, PascalCase types, SCREAMING_SNAKE_CASE constant settings, lowercase kebab-case filenames and CSS names, and camelCase HTML IDs. Zone letters stay in `L-G-N-P` order.
+
+`.oxlintrc.json` enforces filename and identifier rules, type-only imports, and test rules. Warnings fail `npm run lint`. `.oxfmtrc.json` sets a 100-column print width and omits arrow-function parentheses where possible. `.husky/pre-commit` applies lint-staged's autofixes and formatting to staged files; it does not replace the full five-check validation in `AGENTS.md`.
 
 ## Module boundaries
 
@@ -36,7 +44,7 @@ The code is split by responsibility:
 import { ORDER, isZoneKey, type CircleKey, type ZoneKey } from "./data";
 ```
 
-Without the `type` marker, the import would be kept in the emitted JavaScript and fail at runtime, so the compiler reports it as an error.
+With `verbatimModuleSyntax`, TypeScript requires the marker for type-only imports. Otherwise an emitted named import could reference an export that does not exist at runtime.
 
 ## Zone keys everywhere
 
@@ -67,8 +75,14 @@ There is very little, by design. All data is static and trusted, and the `Record
 
 Comments are rare and explain why, not what. Examples: in `src/data.ts`, the notes that zone keys list circles in `L-G-N-P` order and that `ZONE_KEYS` is the overlay creation order; in `src/main.ts`, the note that masks are used instead of clip-paths to keep edges anti-aliased, and the note that `innerHTML` is safe because the content is static and trusted; in `vite.config.ts`, why `base` is relative. In `src/styles.css`, the phone breakpoint explains that SVG text scales down with the diagram.
 
+## Tests
+
+Place `.test.ts` files next to the covered module, with imported Vitest functions rather than globals. `AGENTS.md` calls for one `describe` block per exported name and sentence-style `it` titles; `.oxlintrc.json` rejects skipped and focused tests.
+
+`vitest.config.ts` uses isolated workers and randomized order. Test the pure modules directly, but read `src/main.ts` and `index.html` through `?raw` imports because the controller touches the DOM at import time. New pure-module branches need tests to preserve the existing 100% thresholds. See [Testing](testing.md) for commands and coverage scope.
+
 ## Related pages
 
 - [Visual design](../systems/visual-design.md) for the CSS token and animation details.
 - [Design decisions](../background/design-decisions.md) for the reasoning behind these patterns.
-- [Tooling](tooling.md) for the TypeScript and Vite setup.
+- [Tooling](tooling.md) for the build, lint, format, test, and hook setup.

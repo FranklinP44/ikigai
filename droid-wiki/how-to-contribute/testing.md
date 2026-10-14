@@ -1,6 +1,12 @@
 # Testing
 
-The repository has a Vitest unit test suite plus a manual browser checklist. Run the tests with `npm run test` (or `npm run test:watch` while editing). CI runs them on every pull request, along with the type check in `npm run build`.
+Vitest checks pure logic and markup consistency; manual browser checks cover interactions and visual behavior.
+
+Active contributors: FranklinP44
+
+## Purpose
+
+Use this page to choose tests and interpret reports. Run `npm run test` once or `npm run test:watch` while editing. The complete contribution gate is `npm run check:agents-md`, `npm run lint`, `npm run format:check`, `npm run test:coverage`, then `npm run build`. See [Development workflow](development-workflow.md).
 
 ## Unit tests
 
@@ -15,14 +21,18 @@ Vitest is configured in `vitest.config.ts`, which extends `vite.config.ts`. Test
 Conventions, enforced by `vitest.config.ts` and the `vitest` lint rules in `.oxlintrc.json`:
 
 - Test files sit next to the module they cover and end in `.test.ts`. Other names, such as `.spec.ts`, fail lint.
-- Each test file runs in its own worker thread with a fresh module graph, and file and test order is shuffled on every run. Rerun with `npx vitest run --sequence.seed=<seed>` (the seed is printed at the start of the run) to reproduce an order-dependent failure.
+- Vitest collects only `src/**/*.test.ts`. Import `describe`, `it`, and `expect` explicitly; globals are off. Follow `AGENTS.md`: one `describe` per exported name, sentence-like behavior titles, and `it.each` for tables.
+- Tests use the Node environment, threaded workers, isolation, parallel files, and restored mocks. Each file has a fresh module graph; file and test order is shuffled. Rerun with `npx vitest run --sequence.seed=<seed>` (printed at run start) to reproduce an order-dependent failure.
+- Never import `src/main.ts` as executable code: it queries the DOM on load. Read it or `index.html` as raw text, following `src/index-html.test.ts`.
 - `.only` and `.skip` fail lint.
 
 ## Coverage and durations
 
-`npm run test:coverage` runs the suite with V8 coverage over `src/data.ts` and `src/geometry.ts` and fails if statements, branches, functions or lines fall below 100%. `src/main.ts` is excluded because it touches the DOM as it loads. The text report prints to the console, and an HTML report is written to `coverage/`.
+`npm run test:coverage` runs the suite with V8 coverage over `src/data.ts` and `src/geometry.ts` and fails if statements, branches, functions or lines fall below 100%. `src/main.ts` is excluded because it touches the DOM as it loads. Add tests for new pure-module code; do not lower thresholds, widen exclusions, or skip failing tests. Text coverage prints to the console; HTML and a JSON summary are written under `coverage/`. Coverage is reported on test failure too.
 
-Every test run also writes a JSON report to `reports/test-results.json` (and, on GitHub Actions, a JUnit report to `reports/junit.xml`). `npm run test:durations` reads it and prints the total run time, the time per file and the ten slowest tests, with a warning for any test over 1 second or a suite over 10 seconds. In CI the same table is added to the job summary, and `coverage/` and `reports/` are uploaded as the `test-reports` artifact so durations can be compared across runs. The full-grid scan in `src/geometry.test.ts` is the slowest test, at about half a second.
+Every test run also writes `reports/test-results.json`. GitHub Actions adds failure annotations and `reports/junit.xml`. `npm run test:durations` reads the JSON and prints total time, file durations, and the ten slowest tests. Tests over 1 second or a suite over 10 seconds generate warnings rather than failures; Vitest itself highlights tests slower than 1 second.
+
+CI adds the duration table to its job summary and uploads `coverage/` and `reports/` as `test-reports` between coverage and the production build. Both reporting steps use a not-cancelled condition, so they can run after a preceding failure. The geometry grid scan visits every integer point in the circles' bounding square; keep new tests fast, and explain any intentionally slow test. See [Debugging](debugging.md) for missing reports or coverage failures.
 
 ## Automated check: type checking
 
@@ -68,6 +78,8 @@ Run this after any change to `src/main.ts`, `src/styles.css` or `index.html`. It
 - [ ] At widths below 900 px, the panel stacks under the diagram.
 - [ ] At widths below 600 px, the SVG labels are still readable.
 - [ ] On a touch device or touch emulation, tapping a zone pins it.
+- [ ] Relevant Explore pills can be focused and activated from the keyboard; check visible focus.
+- [ ] Check at least one Chromium browser and one of Firefox or Safari for page changes.
 
 ### After deploy
 
@@ -75,4 +87,8 @@ Run this after any change to `src/main.ts`, `src/styles.css` or `index.html`. It
 
 ## Browser tests
 
-Interaction is still checked by hand. A browser test runner such as Playwright would fit best for that, since it depends on SVG masks and pointer events. It is not installed today. See [Cleanup opportunities](../cleanup-opportunities.md).
+Interaction is still checked by hand; no browser test runner is installed. The 100% threshold describes the pure modules, not browser or accessibility coverage. See [Cleanup opportunities](../cleanup-opportunities.md).
+
+## Key source files
+
+`src/data.test.ts`, `src/geometry.test.ts`, `src/index-html.test.ts`, `vitest.config.ts`, `.oxlintrc.json`, `scripts/report-test-durations.mjs`, and `.github/workflows/deploy-pages.yml`.

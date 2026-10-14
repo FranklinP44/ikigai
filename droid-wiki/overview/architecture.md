@@ -19,21 +19,29 @@ graph TD
     CSS -->|styles state classes| Panel
 ```
 
-`index.html` references `/src/styles.css` and `/src/main.ts` directly. In development, the Vite dev server compiles the TypeScript on request. `npm run build` first type-checks with `tsc --noEmit`, then `vite build` bundles everything into `dist/` (an `index.html` plus hashed JS and CSS files under `dist/assets/`) with the tags rewritten to point at the bundles. `vite.config.ts` sets `base: './'` so the asset URLs are relative and work under the GitHub Pages subpath `/ikigai/`. There is no server code. See [Deployment](../deployment.md) for how `dist/` is published.
+`index.html` uses the browser URLs `"/src/styles.css"` and `"/src/main.ts"` to load `src/styles.css` and `src/main.ts`. In development, the Vite dev server compiles the TypeScript on request. `npm run build` first type-checks with `tsc --noEmit`, then `vite build` bundles everything into `dist/` (an `index.html` plus hashed JS and CSS files under `dist/assets/`) with the tags rewritten to point at the bundles. `vite.config.ts` sets `base: './'` so the asset URLs are relative and work under the GitHub Pages subpath `/ikigai/`. There is no server code. See [Deployment](../deployment.md) for how `dist/` is published.
 
 The entry script is an ES module, so the browser defers it until the document is parsed. `src/main.ts` can look up DOM elements at the top level without waiting for `DOMContentLoaded`.
 
-## Language breakdown
+## Source size
+
+Physical lines, including comments and blank lines, collected on 2026-10-14. This chart covers the five application files, not tests or automation scripts.
 
 ```mermaid
 xychart-beta horizontal
-    title "Lines of code by file"
+    title "Application lines by file"
     x-axis ["src/main.ts (TS)", "src/data.ts (TS)", "src/geometry.ts (TS)", "src/styles.css (CSS)", "index.html (HTML)"]
-    y-axis "Lines" 0 --> 160
-    bar [113, 82, 16, 144, 110]
+    y-axis "Lines" 0 --> 360
+    bar [141, 186, 16, 344, 113]
 ```
 
 See [By the numbers](../by-the-numbers.md) for the full snapshot.
+
+## Build and documentation tooling
+
+`package.json` separates browser code from development tools. Oxlint and Oxfmt check source style; `scripts/check-agents-md.mjs` checks contributor instructions against the repository; `vitest.config.ts` configures Node-based tests for the pure modules and raw markup. `.github/workflows/deploy-pages.yml` runs those checks before building the site. None of those tools runs in the browser.
+
+Documentation has a separate lifecycle. `.github/workflows/droid-wiki-refresh.yml` updates Markdown and uploads it to Factory, then opens a rolling pull request. `.github/workflows/publish-wiki-to-confluence.yml` publishes committed wiki changes to Confluence. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
 
 ## SVG layer stack
 
@@ -51,7 +59,7 @@ The masks that shape layers 2 and 3 are explained in [Region rendering](../syste
 
 ## Request lifecycle: pointer to panel
 
-There are no network requests after load. The interesting flow is how a pointer event updates the page.
+Pointer interaction makes no network requests in `src/main.ts`. Google Fonts resources are separate browser loads from `index.html`. The interesting app flow is how a pointer event updates the page.
 
 ```mermaid
 sequenceDiagram

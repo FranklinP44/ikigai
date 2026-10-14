@@ -1,6 +1,6 @@
 # Visual design
 
-Active contributors: Franklin Pfaller
+Active contributors: FranklinP44
 
 ## Purpose
 
