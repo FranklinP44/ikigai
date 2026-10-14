@@ -12,6 +12,9 @@ reports/
 # Local Confluence dry-run output
 build/
 
+# Droid QA screenshots, snapshots, and reports
+qa-results/
+
 # Environment files hold secrets such as the Confluence API token.
 # .env.example is the committed template; copy it to .env and fill it in.
 .env
