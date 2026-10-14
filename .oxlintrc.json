@@ -69,5 +69,13 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/**", "coverage/**", "reports/**", "droid-wiki/**", ".github/**"]
+  "ignorePatterns": [
+    "dist/**",
+    "coverage/**",
+    "reports/**",
+    "playwright-report/**",
+    "test-results/**",
+    "droid-wiki/**",
+    ".github/**"
+  ]
 }
