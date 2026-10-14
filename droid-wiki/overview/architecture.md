@@ -32,7 +32,7 @@ xychart-beta horizontal
     title "Application lines by file"
     x-axis ["src/main.ts (TS)", "src/data.ts (TS)", "src/geometry.ts (TS)", "src/styles.css (CSS)", "index.html (HTML)"]
     y-axis "Lines" 0 --> 360
-    bar [141, 186, 16, 344, 113]
+    bar [141, 186, 16, 349, 113]
 ```
 
 See [By the numbers](../by-the-numbers.md) for the full snapshot.
@@ -40,6 +40,8 @@ See [By the numbers](../by-the-numbers.md) for the full snapshot.
 ## Build and documentation tooling
 
 `package.json` separates browser code from development tools. Oxlint and Oxfmt check source style; `scripts/check-agents-md.mjs` checks contributor instructions against the repository; `vitest.config.ts` configures Node-based tests for the pure modules and raw markup. `.github/workflows/deploy-pages.yml` runs those checks before building the site. None of those tools runs in the browser.
+
+Functional browser checks are separate from those gates. `.github/workflows/qa.yml` invokes the orchestrator in `.factory/skills/qa/SKILL.md`, which maps the diff to the web flows in `.factory/skills/qa-web/SKILL.md`. `.factory/skills/qa/config.yaml` selects the anonymous visitor persona and local targets; `.factory/settings.json` enables the droid-control plugin. The optional QA job tests branch code, not the production deployment. See [Functional QA](../features/functional-qa.md).
 
 Documentation has a separate lifecycle. `.github/workflows/droid-wiki-refresh.yml` updates Markdown and uploads it to Factory, then opens a rolling pull request. `.github/workflows/publish-wiki-to-confluence.yml` publishes committed wiki changes to Confluence. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
 

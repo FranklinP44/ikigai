@@ -23,6 +23,7 @@ Start here to pick up work and understand the definition of done. Follow [Develo
 4. Keep the sections in `.github/pull_request_template.md`: summary with an issue link, type of change, changed areas, testing, review, and checklist. Include before/after screenshots for visual changes.
 5. `.github/CODEOWNERS` assigns every path to @FranklinP44 and requests owner review. A more specific ownership rule belongs below the catch-all because the last matching rule wins.
 6. To request Droid code and shallow security review, add `droid-review` to a non-draft PR. It does not run automatically on every PR; subsequent commits rerun review while the label remains. See [Tooling](tooling.md).
+7. To request functional browser QA, add `qa` to a non-draft PR. `.github/workflows/qa.yml` tests the branch on local servers and updates one report comment. It needs the `FACTORY_API_KEY` repository secret and is not a required check. Docs-only and test-only changes do not run app flows. See [Functional QA](../features/functional-qa.md).
 
 Normal PRs run the Pages validation workflow without deploying. Wiki-related PRs also run Confluence conversion in dry-run mode. The generated rolling wiki PR is an exception: its built-in GitHub token does not trigger these workflows, so review and validate it explicitly before merging. See [Wiki refresh](../features/wiki-refresh.md).
 
@@ -52,6 +53,7 @@ npm run build
 - `.github/pull_request_template.md`: testing and review checklist.
 - `.github/CODEOWNERS`: repository ownership.
 - `.github/workflows/droid-review.yml`: label-gated review.
+- `.github/workflows/qa.yml`, `.factory/skills/qa/config.yaml`: optional browser QA and target settings.
 
 ## In this section
 

@@ -1,6 +1,6 @@
 # Tooling
 
-TypeScript and Vite build the dependency-free browser app; Oxlint, Oxfmt, Vitest, and Git hooks validate contributions.
+TypeScript and Vite build the dependency-free browser app; Oxlint, Oxfmt, Vitest, and Git hooks validate contributions. Optional Droid functional QA exercises browser behavior separately.
 
 Active contributors: FranklinP44
 
@@ -44,6 +44,18 @@ Before finishing, run `check:agents-md`, `lint`, `format:check`, `test:coverage`
 
 `scripts/report-test-durations.mjs` reads `reports/test-results.json`, prints suite/file durations and the ten slowest tests, and appends the table to the Actions job summary when configured. Tests over 1 second or a suite over 10 seconds produce warnings, not failing gates.
 
+## Functional QA tooling
+
+`.factory/skills/qa/SKILL.md` is the diff-aware orchestrator; `.factory/skills/qa-web/SKILL.md` is the browser-flow menu. `.factory/skills/qa/config.yaml` supplies environment URLs, app matching/exclusions, the anonymous visitor, and evidence settings. It declares `test_tool: agent-browser` and `build_command: "npm run build"` but no `dev_command` or `port`; server commands live in the web skill. Generic wiki screenshot discovery therefore cannot discover a capture-ready app from those fields.
+
+`.factory/settings.json` registers the `factory-plugins` marketplace from `Factory-AI/factory-plugins` and enables `droid-control@factory-plugins`. Droid installs the plugin at project scope on startup; the QA pre-flight checks activation with `droid plugin list --scope project`. Its browser-use route drives agent-browser with Capture and Verify; Compose is loaded only when both `video_evidence` and `droid_control.compose` are true. These are external agent tools, not app dependencies or npm scripts.
+
+`.github/workflows/qa.yml` installs Node 22, npm packages, and Factory Droid, then invokes the skills. It is an optional, informational workflow gated by the `qa` PR label, or manual dispatch. `FACTORY_API_KEY` is required in CI; no app credentials or `.env` are needed. Local runs use localhost:5173 and built-page preview uses localhost:4173. Never use production as a branch-testing fallback.
+
+Current evidence settings are `imagemagick: false`, `video_evidence: false`, `droid_control.compose: false`, and `failure_learning: suggest_in_report`. The workflow reads flags with runner-provided `yq`. It conditionally installs ImageMagick, ffmpeg for video or Compose, and clang/libclang/libx264 development packages for Compose. No such optional packages are requested by the current false defaults. Compose renderer setup belongs to the plugin, not npm installation for the app.
+
+Reports use text snapshots plus downloadable screenshots/logs under gitignored `qa-results/`; the workflow updates one PR comment. Optional attachment upload requires `QA_EVIDENCE_TOKEN` and agent-step environment wiring, absent by default. See [Functional QA](../features/functional-qa.md), [Testing](testing.md), and [Configuration](../reference/configuration.md) before changing flows or evidence behavior.
+
 ## Review and documentation automation
 
 - `.github/workflows/droid-review.yml` runs code and shallow security review only for non-draft PRs labeled `droid-review`. New commits, reopening, and ready-for-review events can rerun it while labeled; unrelated label additions do not.
@@ -64,4 +76,4 @@ Before finishing, run `check:agents-md`, `lint`, `format:check`, `test:coverage`
 
 ## Key source files
 
-`package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `.oxlintrc.json`, `.oxfmtrc.json`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, and `.github/dependabot.yml`.
+`package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `.oxlintrc.json`, `.oxfmtrc.json`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, `.github/dependabot.yml`, `.factory/settings.json`, `.factory/skills/qa/config.yaml`, and `.github/workflows/qa.yml`.

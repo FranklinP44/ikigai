@@ -58,4 +58,6 @@ npm run build
 
 For a quick unit-test run, use `npm run test`. Tests cover zone data, hit-testing geometry, and raw SVG markup in `index.html`. `vitest.config.ts` requires 100% coverage for the pure modules, not the DOM-dependent controller. CI runs the five checks above, writes test durations, and uploads reports before the build.
 
-Interactive behavior is checked by hand in the browser. See [Testing](../how-to-contribute/testing.md) for a manual checklist, [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop, and [Deployment](../deployment.md) for how `main` is published to GitHub Pages.
+Interactive behavior can also be checked through the QA skills described in `AGENTS.md`. Ask Droid to run the `qa` skill against http://localhost:5173; it selects flows from the diff and starts and stops the local server itself. For a non-draft PR, add the `qa` label to request the optional workflow in `.github/workflows/qa.yml`, which needs the `FACTORY_API_KEY` repository secret. It never substitutes the production site for branch testing.
+
+See [Testing](../how-to-contribute/testing.md) for a manual checklist, [Functional QA](../features/functional-qa.md) for the browser automation, [Development workflow](../how-to-contribute/development-workflow.md) for the edit-reload loop, and [Deployment](../deployment.md) for how `main` is published to GitHub Pages.

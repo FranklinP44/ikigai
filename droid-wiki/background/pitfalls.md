@@ -56,6 +56,8 @@ The site is served from `https://franklinp44.github.io/ikigai/`, not from the do
 
 `vitest.config.ts` requires 100% coverage for `src/data.ts` and `src/geometry.ts`, excluding DOM-dependent `src/main.ts`. `src/index-html.test.ts` reads markup and controller source as text. Passing these checks does not verify SVG appearance, pointer/touch interactions, focus access, panel transitions, or font loading. See [Testing](../how-to-contribute/testing.md) for the manual browser checklist and randomized-order reproduction.
 
+The optional `.github/workflows/qa.yml` covers selected browser behavior through `.factory/skills/qa/SKILL.md`, not the five static gates. A green QA job does not mean all flows ran: non-app diffs receive INCONCLUSIVE, and the final workflow check fails on FAIL rows but not BLOCKED or INCONCLUSIVE rows alone. Read the report. The production site serves `main`, so it cannot verify a branch; the QA skills forbid it as a CI target or fallback. See [Functional QA](../features/functional-qa.md).
+
 ## Wiki automation does not imply automatic review
 
 `.github/workflows/droid-review.yml` runs only for non-draft PRs carrying `droid-review`; review is not unconditional. The rolling PR in `.github/workflows/droid-wiki-refresh.yml` uses the built-in GitHub token, so the other workflows do not run automatically on it. Inspect generated diffs before merging; the merge can trigger Confluence publication. See [Wiki refresh](../features/wiki-refresh.md).

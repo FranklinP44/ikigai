@@ -44,3 +44,7 @@ Terms used in the code and in this wiki. Code identifiers point to the file wher
 | Shuffle seed | The seed printed by Vitest for randomized test order, configured in `vitest.config.ts`. Reuse it to reproduce an order-dependent failure. |
 | Rolling wiki branch | `factory/droid-wiki`, reused by `.github/workflows/droid-wiki-refresh.yml` to carry the latest generated pages in one pull request. See [Wiki refresh](../features/wiki-refresh.md). |
 | Release cooldown | The delay before Dependabot proposes a new release, configured in `.github/dependabot.yml`: 7 days normally, 14 for npm majors. |
+| Functional QA | Diff-targeted browser interactions coordinated by `.factory/skills/qa/SKILL.md`, separate from lint, unit tests, and coverage. See [Functional QA](../features/functional-qa.md). |
+| Visitor persona | The anonymous user defined in `.factory/skills/qa/config.yaml`; no login, account, or credentials are required. |
+| Local preview | The built page served at http://localhost:4173 by `npm run preview`, not a hosted per-PR deployment. `.factory/skills/qa/config.yaml` distinguishes it from the dev server and production. |
+| Droid Control | The browser-interaction plugin enabled in `.factory/settings.json`; the QA skills use its browser route, Capture, and Verify stages. Compose is off by default. |

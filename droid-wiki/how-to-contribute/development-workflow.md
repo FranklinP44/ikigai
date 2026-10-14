@@ -58,6 +58,8 @@ Inspect automatic edits and fix failures rather than bypassing the hook. The hoo
 
 Open a PR to `main` using `.github/pull_request_template.md`. Owner review comes from `.github/CODEOWNERS`. Add `droid-review` for optional Droid code and security review on a non-draft PR; without that label, auto review is skipped.
 
+For optional browser QA, add `qa` to a non-draft PR. `.github/workflows/qa.yml` reruns when new commits arrive while the label remains, and updates a single report comment. It runs only the relevant flows selected by `.factory/skills/qa/SKILL.md`, not all browser flows or the static checks. Locally, ask Droid to run the `qa` skill against http://localhost:5173; it includes uncommitted changes when selecting flows. Never use the production site to verify branch code. See [Functional QA](../features/functional-qa.md).
+
 Normal PR CI runs the same five gates, with duration reporting and report upload between coverage and build. After merging, Pages deploys. The rolling `factory/droid-wiki` PR is created with the built-in GitHub token, so it does not automatically run CI or the Confluence dry run; review and validate its diff explicitly. See [Wiki refresh](../features/wiki-refresh.md) and [Deployment](../deployment.md).
 
 ## Key source files
@@ -66,3 +68,4 @@ Normal PR CI runs the same five gates, with duration reporting and report upload
 - `package.json`, `.husky/pre-commit`: scripts and staged-file checks.
 - `.github/pull_request_template.md`, `.github/workflows/droid-review.yml`: review process.
 - `.github/workflows/deploy-pages.yml`: CI gates and deployment.
+- `.github/workflows/qa.yml`, `.factory/skills/qa/SKILL.md`: optional diff-targeted browser verification.

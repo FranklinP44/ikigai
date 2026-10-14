@@ -47,17 +47,25 @@ npm has an open-PR limit of five. Automated major updates are ignored for `vites
 
 | Action | Version | Workflow |
 | --- | --- | --- |
-| `actions/checkout` | `v7` | All five files in `.github/workflows/` |
-| `actions/setup-node` | `v7` | `.github/workflows/deploy-pages.yml` (Node 22), `.github/workflows/publish-wiki-to-confluence.yml` (Node 20) |
+| `actions/checkout` | `v7` | All six files in `.github/workflows/` |
+| `actions/setup-node` | `v7` | `.github/workflows/deploy-pages.yml` and `.github/workflows/qa.yml` (Node 22), `.github/workflows/publish-wiki-to-confluence.yml` (Node 20) |
 | `actions/upload-pages-artifact` | `v5` | `.github/workflows/deploy-pages.yml` |
 | `actions/deploy-pages` | `v5` | `.github/workflows/deploy-pages.yml` |
 | `actions/setup-python` | `v7` | `.github/workflows/publish-wiki-to-confluence.yml` (Python 3.12) |
-| `actions/upload-artifact` | `v7` | `.github/workflows/deploy-pages.yml`, `.github/workflows/publish-wiki-to-confluence.yml`, `.github/workflows/droid-wiki-refresh.yml` |
+| `actions/upload-artifact` | `v7` | `.github/workflows/deploy-pages.yml`, `.github/workflows/publish-wiki-to-confluence.yml`, `.github/workflows/droid-wiki-refresh.yml`, `.github/workflows/qa.yml` |
 | `actions/download-artifact` | `v8` | `.github/workflows/droid-wiki-refresh.yml` |
 | `peter-evans/create-pull-request` | `5f6978faf089d4d20b00c7766989d076bb2fc7f1` (v8.1.1) | `.github/workflows/droid-wiki-refresh.yml` |
 | `Factory-AI/droid-action` | `main` | `.github/workflows/droid.yml`, `.github/workflows/droid-review.yml` |
 
-The Confluence workflow also installs `@mermaid-js/mermaid-cli@11` globally; this is a floating major, not an exact npm lockfile pin. `.github/scripts/puppeteer-config.json` supplies Chrome's `--no-sandbox` flag for rendering. `.github/workflows/droid-wiki-refresh.yml` installs the Factory Droid CLI from `https://app.factory.ai/cli`, not a pinned npm package. These tools have no role in browser runtime. See [Deployment](../deployment.md) and [Wiki refresh](../features/wiki-refresh.md).
+The Confluence workflow also installs `@mermaid-js/mermaid-cli@11` globally; this is a floating major, not an exact npm lockfile pin. `.github/scripts/puppeteer-config.json` supplies Chrome's `--no-sandbox` flag for rendering. `.github/workflows/droid-wiki-refresh.yml` and `.github/workflows/qa.yml` install the Factory Droid CLI from `https://app.factory.ai/cli`, not a pinned npm package. These tools have no role in browser runtime. See [Deployment](../deployment.md) and [Wiki refresh](../features/wiki-refresh.md).
+
+## Functional QA tools
+
+`.factory/settings.json` registers the GitHub marketplace `Factory-AI/factory-plugins` as `factory-plugins` and enables `droid-control@factory-plugins`. Droid discovers/installs it at project scope; QA checks activation with `droid plugin list --scope project`. The QA skills route browser interaction through droid-control's browser-use driver, agent-browser, plus Capture and Verify. These external tools are not runtime or dev packages in `package.json`; no browser runner was added to the npm lockfile.
+
+`.factory/skills/qa/config.yaml` has `test_tool: agent-browser`, with `imagemagick`, `video_evidence`, and `droid_control.compose` all false. `.github/workflows/qa.yml` reads these with runner-provided `yq` and conditionally installs ImageMagick; ffmpeg when video or Compose is enabled; and clang, libclang-dev, and libx264-dev when Compose is enabled. Rust is assumed preinstalled by the workflow. Compose renderer dependency setup is delegated to the plugin and is not performed when Compose is off.
+
+The current configuration requests no optional system packages or video renderer. `FACTORY_API_KEY` authenticates the CI agent; optional inline video attachments need separate evidence-token wiring, not present by default. See [Functional QA](../features/functional-qa.md) and [Configuration](configuration.md) for routing, environments, and evidence limits.
 
 ## Python packages
 
@@ -83,4 +91,4 @@ Pinned in `.github/scripts/requirements.txt` and used only by `.github/scripts/p
 
 ## Dev tooling
 
-Oxlint and Oxfmt check source style, Husky and lint-staged check staged changes, and Vitest tests pure modules plus source-text markup invariants. That does not exercise the DOM controller in a browser. See [Tooling](../how-to-contribute/tooling.md), [Testing](../how-to-contribute/testing.md), and [Trust boundaries](../security.md) for scope and limits.
+Oxlint and Oxfmt check source style, Husky and lint-staged check staged changes, and Vitest tests pure modules plus source-text markup invariants. Vitest does not exercise the DOM controller in a browser; optional functional QA covers selected interactions separately. See [Tooling](../how-to-contribute/tooling.md), [Testing](../how-to-contribute/testing.md), and [Trust boundaries](../security.md) for scope and limits.
