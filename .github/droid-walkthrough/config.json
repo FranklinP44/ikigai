@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "min_changed_lines": 150,
+  "post_inline": ["core", "notable"],
+  "summary_tiers": ["core", "notable", "minor"],
+  "max_inline_comments": 15,
+  "max_candidates": 40,
+  "max_comment_span": 40,
+  "replace_previous": true,
+  "model": "",
+  "reasoning_effort": "",
+  "exclude_paths": [
+    "*.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "go.sum",
+    "*.min.js",
+    "*.map",
+    "*.snap",
+    "*/__snapshots__/*",
+    "dist/*",
+    "*/dist/*",
+    "build/*",
+    "*/build/*",
+    "vendor/*",
+    "*/vendor/*",
+    "*.generated.*",
+    "*_pb2.py",
+    "*.pb.go"
+  ],
+  "tiers": {
+    "core": "Must understand before approving: new or changed data models, schemas, or migrations; auth, permissions, or other security-sensitive paths; public API or interface contracts; core business logic added, rewritten, or removed; new external services or dependencies; changes to how data is stored, sent, or deleted.",
+    "notable": "Worth a read: new modules, components, or functions; non-trivial logic changes; cross-cutting refactors; new configuration or feature flags; error handling, retries, or state management.",
+    "minor": "Skim: renames, moved code, formatting, simple wiring, tests that mirror the code, copy changes, boilerplate."
+  },
+  "extra_instructions": ""
+}
