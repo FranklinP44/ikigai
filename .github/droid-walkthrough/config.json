@@ -10,10 +10,23 @@
   "model": "",
   "reasoning_effort": "",
   "exclude_paths": [
-    "*.lock", "package-lock.json", "pnpm-lock.yaml", "go.sum",
-    "*.min.js", "*.map", "*.snap", "*/__snapshots__/*",
-    "dist/*", "*/dist/*", "build/*", "*/build/*", "vendor/*", "*/vendor/*",
-    "*.generated.*", "*_pb2.py", "*.pb.go"
+    "*.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "go.sum",
+    "*.min.js",
+    "*.map",
+    "*.snap",
+    "*/__snapshots__/*",
+    "dist/*",
+    "*/dist/*",
+    "build/*",
+    "*/build/*",
+    "vendor/*",
+    "*/vendor/*",
+    "*.generated.*",
+    "*_pb2.py",
+    "*.pb.go"
   ],
   "tiers": {
     "core": "Must understand before approving: new or changed data models, schemas, or migrations; auth, permissions, or other security-sensitive paths; public API or interface contracts; core business logic added, rewritten, or removed; new external services or dependencies; changes to how data is stored, sent, or deleted.",

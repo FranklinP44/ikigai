@@ -50,12 +50,13 @@ Tiers rank how much reviewer attention a change needs. They are not bug or secur
 
 ## Output
 
-Reply with only one JSON object, with no prose and no code fences, in this shape:
+Reply with only one JSON object in the shape below. Send the object itself, with no prose before or after it and without the code fence.
 
+```json
 {
   "summary": {
     "overview": "...",
-    "reading_order": [{"path": "...", "why": "..."}],
+    "reading_order": [{ "path": "...", "why": "..." }],
     "notable_non_inline": ["..."]
   },
   "comments": [
@@ -73,5 +74,6 @@ Reply with only one JSON object, with no prose and no code fences, in this shape
       "reviewer_focus": "..."
     }
   ],
-  "dropped": [{"id": "c3", "reason": "Short reason"}]
+  "dropped": [{ "id": "c3", "reason": "Short reason" }]
 }
+```

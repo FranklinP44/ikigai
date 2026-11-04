@@ -22,7 +22,6 @@ jobs:
       pull-requests: write
       issues: write
     env:
-      WT_DIR: ${{ runner.temp }}/droid-walkthrough
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -40,6 +39,8 @@ jobs:
         shell: bash
         run: |
           # Config, prompts, and script come from the base branch so a PR cannot rewrite its own walkthrough rules.
+          WT_DIR="$RUNNER_TEMP/droid-walkthrough"
+          echo "WT_DIR=$WT_DIR" >> "$GITHUB_ENV"
           mkdir -p "$WT_DIR"
           for f in config.json pass1-candidates.md pass2-validate.md walkthrough.py; do
             if ! git show "$BASE_SHA:.github/droid-walkthrough/$f" > "$WT_DIR/$f" 2>/dev/null; then

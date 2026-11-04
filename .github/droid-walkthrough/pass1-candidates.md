@@ -50,13 +50,21 @@ Give each comment one tier. Tiers rank how much reviewer attention a change need
 
 ## Output
 
-Return at most {{MAX_CANDIDATES}} candidates, most important first. Reply with only one JSON object, with no prose and no code fences, in this shape:
+Return at most {{MAX_CANDIDATES}} candidates, most important first. Reply with only one JSON object in the shape below. Send the object itself, with no prose before or after it and without the code fence.
 
+```json
 {
   "summary": {
     "overview": "3 to 6 sentences: what the pull request does overall and how the pieces fit together.",
-    "reading_order": [{"path": "src/example.ts", "why": "Start here: defines the data model the rest of the change uses."}],
-    "notable_non_inline": ["Changes that do not fit one block of code, such as deleted files, dependency bumps, or moved code."]
+    "reading_order": [
+      {
+        "path": "src/example.ts",
+        "why": "Start here: defines the data model the rest of the change uses."
+      }
+    ],
+    "notable_non_inline": [
+      "Changes that do not fit one block of code, such as deleted files, dependency bumps, or moved code."
+    ]
   },
   "candidates": [
     {
@@ -73,3 +81,4 @@ Return at most {{MAX_CANDIDATES}} candidates, most important first. Reply with o
     }
   ]
 }
+```
