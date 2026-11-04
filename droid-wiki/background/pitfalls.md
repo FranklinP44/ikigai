@@ -56,13 +56,19 @@ The site is served from `https://franklinp44.github.io/ikigai/`, not from the do
 
 `vitest.config.ts` requires 100% coverage for `src/data.ts` and `src/geometry.ts`, excluding DOM-dependent `src/main.ts`. `src/index-html.test.ts` reads markup and controller source as text. Passing these checks does not verify SVG appearance, pointer/touch interactions, focus access, panel transitions, or font loading. See [Testing](../how-to-contribute/testing.md) for the manual browser checklist and randomized-order reproduction.
 
-The optional `.github/workflows/qa.yml` covers selected browser behavior through `.factory/skills/qa/SKILL.md`, not the five static gates. A green QA job does not mean all flows ran: non-app diffs receive INCONCLUSIVE, and the final workflow check fails on FAIL rows but not BLOCKED or INCONCLUSIVE rows alone. Read the report. The production site serves `main`, so it cannot verify a branch; the QA skills forbid it as a CI target or fallback. See [Functional QA](../features/functional-qa.md).
+`e2e/diagram.spec.ts` adds eight Chromium checks for initial load, Explore buttons, hover and keyboard selection. It does not check every zone, diagram click-to-pin, mobile taps, console errors or visual focus-ring contrast. `playwright.config.ts` may reuse a server already on port 4173 outside CI; a passing local run can therefore reflect a stale build if you reuse the wrong preview.
+
+The optional `.github/workflows/qa.yml` covers selected browser behavior through `.factory/skills/qa/SKILL.md`, not the five static gates. `scripts/check-qa-report.mjs` now fails on FAIL, BLOCKED, invalid reports, or unsuccessful QA processes, but a green job still does not mean all flows ran: the exact no-app-diff INCONCLUSIVE row and FLAKY results are accepted. Read the report. The production site serves `main`, so it cannot verify a branch; the QA skills forbid it as a CI target or fallback. See [Functional QA](../features/functional-qa.md).
+
+`scripts/provision-qa-browser.sh` checks only browser readiness with `about:blank`. A QA-tooling-only diff does not match app paths and needs separately authorized targeted browser QA before anyone claims app validation. In CI, keep the provisioned absolute paths and owned session from `scripts/run-qa.sh`; do not attach to another browser or replace the pinned driver. CI requires video and Compose disabled.
 
 ## Wiki automation does not imply automatic review
 
 `.github/workflows/droid-review.yml` runs only for non-draft PRs carrying `droid-review`; review is not unconditional. The rolling PR in `.github/workflows/droid-wiki-refresh.yml` uses the built-in GitHub token, so the other workflows do not run automatically on it. Inspect generated diffs before merging; the merge can trigger Confluence publication. See [Wiki refresh](../features/wiki-refresh.md).
 
 ## Related pages
+
+Walkthrough comments are also not code-review findings. `.github/workflows/droid-walkthrough.yml` does not rerun on new commits; its `droid-walkthrough` label is consumed after a label-triggered post. Re-add it for a fresh explanation, and keep the separate `droid-review` label for bug/security review. Base-sourced controls mean edits to the walkthrough's own prompts/configuration do not govern that PR's run. See [PR walkthrough](../features/pr-walkthrough.md).
 
 - [Debugging](../how-to-contribute/debugging.md) has symptoms and fixes for most of these.
 - [Cleanup opportunities](../cleanup-opportunities.md) lists small refactors that would remove some of them.

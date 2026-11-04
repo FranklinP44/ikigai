@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-10-14T12:03:05Z",
-  "commitHash": "ee0906ddca3a9a53907c9c26c1670001ebc7dfe1",
+  "generatedAt": "2026-11-04T02:38:13Z",
+  "commitHash": "1ddd9dd22051ff35c8b11cc7898b7d805a2b9fef",
   "branch": "main",
-  "pageCount": 33,
+  "pageCount": 34,
   "topLevelSections": [
     "overview",
     "by-the-numbers",
@@ -37,6 +37,7 @@
     "features/detail-panel.md",
     "features/wiki-refresh.md",
     "features/functional-qa.md",
+    "features/pr-walkthrough.md",
     "systems/index.md",
     "systems/region-rendering.md",
     "systems/visual-design.md",
@@ -55,6 +56,8 @@
   ],
   "videoOverview": {
     "status": "skipped",
-    "warnings": ["Video generation and reuse skipped at the user's request."]
+    "warnings": [
+      "Video generation and reuse skipped at the user's request."
+    ]
   }
 }

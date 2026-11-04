@@ -95,18 +95,60 @@ gh run view <run-id> -R FranklinP44/ikigai --log-failed
 
 The app writes nothing to the console. Add temporary `console.log` calls in the `pointermove` handler in `src/main.ts` to trace coordinates and keys, and remove them before committing.
 
+## Playwright failures
+
+The fixed suite uses `playwright.config.ts` and `e2e/diagram.spec.ts`, independently of Factory QA. See [Testing](testing.md#playwright-end-to-end-tests) for its assertions.
+
+| Symptom | Next step |
+| --- | --- |
+| Chromium executable is missing | Run `npx playwright install chromium` after installing npm packages. |
+| Linux browser launch reports missing system libraries | Use `npx playwright install --with-deps chromium`, matching `.github/workflows/e2e.yml`; system-library installation may require administrator privileges. |
+| Preview cannot bind port 4173 | Identify the process using it. Stop only a server you own, then rerun; strict-port startup does not silently move to another port. CI does not reuse servers. |
+| Local tests pass against old content | Outside CI, Playwright can reuse an existing preview and skip its build/start command. Stop the stale preview and rerun so the current tree is built. |
+| Hover assertion fails | Recheck SVG `(282, 287)` against `src/geometry.ts`. The helper transforms it with `getScreenCTM()` before moving the real mouse; selector-only hover is not equivalent. |
+| No local HTML report or trace | Local defaults are the list reporter, zero retries, and traces on first retry only. Select HTML explicitly with `npm run test:e2e -- --reporter=html`, or tracing with `npm run test:e2e -- --trace=on`. |
+
+In the **E2E** Actions run, inspect the first failing step and download the failure-only `playwright-report` artifact, retained for 14 days by `.github/workflows/e2e.yml`. It contains available HTML report and `test-results/` files, including first-retry traces. Open extracted HTML with `npx playwright show-report <report-directory>` or a trace with `npx playwright show-trace <trace.zip>`. CI retries once; a successful first attempt has no retry trace. An early setup failure may leave no report files.
+
 ## Functional QA failures
 
 `.factory/skills/qa-web/SKILL.md` records browser-testing failure modes. Servers start with `--strictPort`; a conflict on 5173 or 4173 in CI is BLOCKED, not a reason to test production. Stop Vite children as well as their npm wrappers. Wait until `#content` loses `swap` before reading new panel text, and wait about two seconds for circle labels before a load screenshot.
 
 Hover is coordinate-based. Move the real pointer to a point transformed through the SVG screen matrix; dispatching synthetic events on a zone group does not test the intended interaction. Moving outside the circles but still inside the SVG is not `pointerleave`. Use a visible heading or the panel title to leave the diagram.
 
-The workflow in `.github/workflows/qa.yml` checks for `FACTORY_API_KEY` before running Droid. Fork PRs do not receive repository secrets. Inspect the `qa-results` artifact and `qa-output.txt` when no report is produced; successful runs write `qa-results/report.md` and update the PR comment. A failed agent step, a missing report, or a table row marked FAIL makes the job fail. BLOCKED and INCONCLUSIVE rows alone do not, so read the report rather than relying only on the job status.
+The workflow in `.github/workflows/qa.yml` requires `FACTORY_API_KEY` for plugin provisioning and the model run. Fork PRs do not receive repository secrets. Inspect the `qa-results` artifact and `qa-output.txt` when no report is produced; successful runs write `qa-results/report.md` and update the PR comment. The final step fails on unsuccessful QA processes or a failed report gate, after publishing available evidence.
 
-With the defaults in `.factory/skills/qa/config.yaml`, video and Compose are off. Screenshots remain downloadable artifacts; text snapshots are the inline evidence. Google Fonts network failures and the browser's unsolicited favicon 404 are known environment noise, unlike errors in the page's own code. See [Functional QA](../features/functional-qa.md).
+| QA failure | Next step |
+| --- | --- |
+| Plugin inactive, wrong driver version, or ambiguous Chrome cache | Inspect `qa-plugins.txt`, `qa-driver-version.txt`, and provisioning logs from `scripts/provision-qa-browser.sh`. CI expects active project droid-control, agent-browser 0.37.1, and exactly one managed Chrome executable. Do not substitute system Chrome or install another driver inside the agent run. |
+| Missing provisioned paths | `scripts/run-qa.sh` requires absolute `QA_AGENT_BROWSER`, `QA_BROWSER_CONFIG`, and `QA_BROWSER_EXECUTABLE_PATH` paths exported by provisioning. Preserve them and the owned session instead of attaching to another browser. |
+| Invalid report diagnostic | `scripts/check-qa-report.mjs` requires the exact heading/header, separator, contiguous six-cell rows, unique positive IDs, recognized Result values, and no placeholders. Reproduce with `node scripts/check-qa-report.mjs qa-results/report.md success`. |
+| FAIL or BLOCKED Result | Read the affected flow's evidence and remediation. Both fail the gate; failure words only in Notes or the legend do not. |
+| Green job with INCONCLUSIVE | Only the exact no-app-diff row is accepted. It means no browser validation happened; a QA-tooling change needs separately authorized targeted app QA. |
+| Video or Compose configuration rejected | Keep both YAML flags false for CI; the workflow and runner prohibit recording/rendering video. |
+
+With the defaults in `.factory/skills/qa/config.yaml`, video and Compose are off, and CI enforces that setting. Screenshots remain downloadable artifacts; text snapshots are the inline evidence. Google Fonts network failures and the browser's unsolicited favicon 404 are known environment noise, unlike errors in the page's own code. See [Functional QA](../features/functional-qa.md).
+
+## PR walkthrough failures
+
+`.github/workflows/droid-walkthrough.yml` is separate from code review and QA. See [PR walkthrough](../features/pr-walkthrough.md) before interpreting its output as a finding or a test result.
+
+| Symptom | Next step |
+| --- | --- |
+| No run after pushing commits | There is no `synchronize` trigger. Add `droid-walkthrough` to request another eligible run. |
+| Job skipped or size gate says no | Check same-repository/non-draft eligibility, the event type, and the 150-line non-excluded/non-binary threshold. Only a qualifying label event bypasses size. |
+| Base files not found | The workflow deliberately loads controls from the base SHA. A PR introducing these files cannot use its own copies; the load step emits a notice and skips. |
+| Invalid model JSON | `.github/droid-walkthrough/walkthrough.py` retries JSON extraction once by resuming the Droid session. Inspect the failing pass; CLI/Factory failures are separate from placement. |
+| Fewer inline comments than candidates | Exclusions, hunk/anchor placement, the 40-line span, selected tiers, overlapping ranges and 15-comment cap affect inline selection. Unplaced items may remain in the summary. |
+| Summary-only review | GitHub rejected the inline payload; the orchestrator warns and retries without inline comments. |
+| Label disappeared or older comments changed | A successful label-triggered posting path removes the label; replacement of marked bot walkthroughs is enabled by default. |
+
+The runner-temporary `WT_DIR` holds rendered prompts, candidate/validated JSON, usage and the final payload, but the workflow does not upload those as an artifact. `WT_DRY_RUN=1` on `post` allows local payload inspection without GitHub writes; do not use live posting as a diagnostic shortcut. Keep credentials and PR content out of shared logs.
 
 ## Key source files
 
 `src/main.ts`, `src/geometry.ts`, `vite.config.ts`, `vitest.config.ts`, `.husky/pre-commit`, `scripts/check-agents-md.mjs`, `scripts/report-test-durations.mjs`, and `.github/workflows/deploy-pages.yml`.
 
-Browser QA: `.factory/skills/qa/SKILL.md`, `.factory/skills/qa-web/SKILL.md`, `.factory/skills/qa/config.yaml`, and `.github/workflows/qa.yml`.
+Playwright: `playwright.config.ts`, `e2e/diagram.spec.ts`, and `.github/workflows/e2e.yml`.
+
+Browser QA: `.factory/skills/qa/SKILL.md`, `.factory/skills/qa-web/SKILL.md`, `.factory/skills/qa/config.yaml`, `.github/workflows/qa.yml`, `scripts/provision-qa-browser.sh`, `scripts/run-qa.sh`, and `scripts/check-qa-report.mjs`.
