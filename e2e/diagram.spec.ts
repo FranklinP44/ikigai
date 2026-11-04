@@ -68,3 +68,21 @@ test("pressing Enter on a focused pill selects its zone", async ({ page }) => {
   await expect(page.locator("#title")).toHaveText("Passion");
   await expect(page.locator("button.pill.active")).toHaveAttribute("data-zone", "LG");
 });
+
+test("the self-check pins the zone for your scores and keeps them in the link", async ({
+  page,
+}) => {
+  await page.locator('input.score[data-circle="L"]').fill("8");
+  await page.locator('input.score[data-circle="G"]').fill("7");
+  await expect(page.locator("#checkHeadline")).toHaveText("You’re in Passion");
+  await expect(page.locator("#title")).toHaveText("Passion");
+  await expect(page).toHaveURL(/#check=8-7-5-5$/);
+
+  await page.reload();
+  await expect(page.locator('input.score[data-circle="L"]')).toHaveValue("8");
+  await expect(page.locator("#checkHeadline")).toHaveText("You’re in Passion");
+
+  await page.locator("#checkReset").click();
+  await expect(page.locator("#checkHeadline")).toHaveText("Not in any circle yet");
+  await expect(page.locator("#title")).toHaveText("Ikigai");
+});

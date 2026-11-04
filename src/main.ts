@@ -1,5 +1,15 @@
 import { CIRCLE, EXAMPLES, ORDER, ZONES, ZONE_KEYS, isZoneKey, type ZoneKey } from "./data";
 import { CENTERS, R, zoneAt } from "./geometry";
+import {
+  DEFAULT_SCORES,
+  STORAGE_KEY,
+  decodeScores,
+  describeResult,
+  encodeScores,
+  normalizeScores,
+  parseStoredScores,
+  type Scores,
+} from "./self-check";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -139,3 +149,92 @@ pills.forEach(p =>
 );
 
 setZone("LGNP", true);
+
+const selfCheck = byId("selfCheck", HTMLFormElement);
+const checkHeadline = byId("checkHeadline", HTMLElement);
+const checkDetail = byId("checkDetail", HTMLElement);
+const checkShare = byId("checkShare", HTMLButtonElement);
+const checkReset = byId("checkReset", HTMLButtonElement);
+const scoreInputs = selfCheck.querySelectorAll<HTMLInputElement>("input.score");
+
+// Storage can throw in private browsing or when disabled, and the self-check works without it.
+function readStored(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(value: string | null): void {
+  try {
+    if (value === null) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, value);
+  } catch {
+    // Ignore: the shareable link still carries the scores.
+  }
+}
+
+let scores: Scores = decodeScores(location.hash) ??
+  parseStoredScores(readStored()) ?? {
+    ...DEFAULT_SCORES,
+  };
+let shareTimer: number | undefined;
+
+function renderCheck(): void {
+  for (const input of scoreInputs) {
+    const circle = input.dataset.circle;
+    if (!circle || !(circle in scores)) continue;
+    const value = scores[circle as keyof Scores];
+    input.value = String(value);
+    const output = input.nextElementSibling;
+    if (output instanceof HTMLOutputElement) output.value = String(value);
+  }
+  const result = describeResult(scores);
+  checkHeadline.textContent = result.headline;
+  checkDetail.textContent = result.detail;
+  if (result.zone) {
+    pinned = result.zone;
+    setZone(pinned);
+  }
+}
+
+function saveCheck(): void {
+  writeStored(JSON.stringify(scores));
+  history.replaceState(null, "", encodeScores(scores));
+}
+
+selfCheck.addEventListener("input", e => {
+  const input = e.target;
+  if (!(input instanceof HTMLInputElement) || !input.dataset.circle) return;
+  scores = normalizeScores({ ...scores, [input.dataset.circle]: Number(input.value) });
+  saveCheck();
+  renderCheck();
+});
+
+checkShare.addEventListener("click", () => {
+  saveCheck();
+  window.clearTimeout(shareTimer);
+  navigator.clipboard.writeText(location.href).then(
+    () => {
+      checkShare.textContent = "Link copied";
+      shareTimer = window.setTimeout(() => {
+        checkShare.textContent = "Copy link";
+      }, 1500);
+    },
+    () => {
+      checkShare.textContent = "Copy the address bar";
+    },
+  );
+});
+
+checkReset.addEventListener("click", () => {
+  scores = { ...DEFAULT_SCORES };
+  writeStored(null);
+  history.replaceState(null, "", location.pathname + location.search);
+  pinned = "LGNP";
+  setZone(pinned);
+  renderCheck();
+});
+
+renderCheck();

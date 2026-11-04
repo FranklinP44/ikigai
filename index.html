@@ -100,6 +100,40 @@
           </div>
         </div>
 
+        <form class="self-check" id="selfCheck" aria-labelledby="selfCheckLabel">
+          <div class="explore-label" id="selfCheckLabel">Self-check</div>
+          <p class="self-check-hint">
+            Rate each circle from 0 to 10. Circles rated 6 or higher count.
+          </p>
+          <label class="score-row">
+            <span><i style="background: var(--love)"></i>What you love</span>
+            <input class="score" type="range" min="0" max="10" step="1" data-circle="L" />
+            <output>5</output>
+          </label>
+          <label class="score-row">
+            <span><i style="background: var(--good)"></i>What you’re good at</span>
+            <input class="score" type="range" min="0" max="10" step="1" data-circle="G" />
+            <output>5</output>
+          </label>
+          <label class="score-row">
+            <span><i style="background: var(--needs)"></i>What the world needs</span>
+            <input class="score" type="range" min="0" max="10" step="1" data-circle="N" />
+            <output>5</output>
+          </label>
+          <label class="score-row">
+            <span><i style="background: var(--paid)"></i>What you can be paid for</span>
+            <input class="score" type="range" min="0" max="10" step="1" data-circle="P" />
+            <output>5</output>
+          </label>
+          <div class="check-result" aria-live="polite">
+            <strong id="checkHeadline"></strong>
+            <p id="checkDetail"></p>
+          </div>
+          <div class="check-actions">
+            <button type="button" class="check-button" id="checkShare">Copy link</button>
+            <button type="button" class="check-button" id="checkReset">Reset</button>
+          </div>
+        </form>
         <p class="note">
           The white dots mark the three-circle overlaps. The four-circle model is a modern Western
           adaptation: Marc Winn relabeled Andrés Zuzunaga’s purpose Venn diagram as “ikigai” in

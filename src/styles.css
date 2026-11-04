@@ -309,6 +309,85 @@ svg.hovering {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
+/* Self-check */
+.self-check {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.self-check .explore-label {
+  margin-bottom: 0;
+}
+.self-check-hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 22px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.score-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.score-row i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.score-row input {
+  width: 100%;
+  accent-color: var(--ink);
+}
+.score-row output {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--muted);
+}
+.check-result {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.check-result strong {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 17px;
+}
+.check-result p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4a423c;
+}
+.check-actions {
+  display: flex;
+  gap: 8px;
+}
+.check-button {
+  font: 500 13px var(--sans);
+  color: var(--ink);
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.check-button:hover {
+  background: #fff;
+  border-color: #d6cabb;
+}
+.check-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
 .note {
   font-size: 12.5px;
   line-height: 1.6;
