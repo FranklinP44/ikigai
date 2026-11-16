@@ -117,7 +117,7 @@ jobs:
         # The wiki is already generated and uploaded by this point, so a rejected push or pull
         # request must not fail the run; the next step turns it into a run annotation instead.
         continue-on-error: true
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           # Pull requests opened with GITHUB_TOKEN do not trigger other workflows, so the CI
           # checks and the Confluence dry run do not run on the wiki pull request.
